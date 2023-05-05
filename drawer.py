@@ -41,8 +41,12 @@ class BrowserDrawer:
         
         self.visualizer.add_lines(name, starts, ends, colors=color) 
     
-    def show(self):
-        self.visualizer.save('Plots')
+    def show(self, name=None):
+        fn = 'Plots'
+        if name:
+            fn = 'Plots/' + name
+        self.visualizer.save(fn)
+        
         
         cmd = 'python3 -m http.server 6008'
         os.system(cmd)
