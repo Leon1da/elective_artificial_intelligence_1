@@ -77,6 +77,17 @@ def rotation_to_direction_vectors(rotation):
     dx, dy, dz = rotation
     return dx, dy, dz
 
+def rotation_to_axis_angle(rotation):
+    angle = np.arccos((np.trace(rotation) - 1)*0.5)
+    
+    r12, r13, r21, r23, r31, r32 = rotation[0, 1], rotation[0, 2], rotation[1, 0], rotation[1, 2], rotation[2, 0], rotation[2, 1]
+    ax = (r32 - r23) / 2 * np.sin(angle)
+    ay = (r13 - r31) / 2 * np.sin(angle)
+    az = (r21 - r12) / 2 * np.sin(angle)
+    
+    axis = np.array([ax, ay, az])
+    return axis, angle
+    
 def Rx(angle):
     R = np.zeros((3, 3))
     R[0, 0] = 1
