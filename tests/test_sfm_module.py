@@ -13,7 +13,7 @@ images = Path(workdir + '/data/icra_data/')
 outputs = Path('reconstruction_output/')
 
 # IMPORTANT SET THE NEW FOLDER
-reconstruction_folder = 'output_300_599'
+reconstruction_folder = 'output_1000_1900_step_3'
 outputs = outputs / reconstruction_folder
 
 print("Output folder", outputs)
@@ -38,14 +38,14 @@ print()
 
 # We dont load all the images since the performance drop down significantly
 
-num_images = 300 # sample N image from the set
-start_index = 300
-# sequentially
-idx = np.arange(start_index, start_index + num_images) # sample the first 'num_images' images
+num_images = 301 # sample N image from the set
+start_index = 1000
+# # sequentially
+# idx = np.arange(start_index, start_index + num_images) # sample the first 'num_images' images
 
-# # step
-# step = 5
-# idx = np.arange(0, num_images * step, step) # sample an image every 'step' images, a total of 'num_images' images will be sampled
+# step
+step = 3
+idx = np.arange(start_index, start_index + num_images * step, step) # sample an image every 'step' images, a total of 'num_images' images will be sampled
 
 references = references[idx].tolist()
 num_references = len(references)

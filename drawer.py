@@ -88,6 +88,7 @@ class ScaleEstimationWindow(DrawerWindow):
     
     def __init__(self, window_name: WindowName):
         fig, ax = plt.subplots(2,4)
+        fig, ax = plt.subplots(1, 2)
         
         self.fig = fig
         self.ax = ax
@@ -121,7 +122,8 @@ class ScaleEstimationWindow(DrawerWindow):
         
         if 'sicp_error' in kwargs:
             error = kwargs['sicp_error']
-            lines = self.ax[0, 1].get_lines()
+            # lines = self.ax[0, 1].get_lines()
+            lines = self.ax[0, 0].get_lines()
             num_lines = len(lines)
             if num_lines:
                 x_data, y_data = lines[-1].get_data()  
@@ -207,7 +209,8 @@ class ScaleEstimationWindow(DrawerWindow):
         
         if 'micp_error' in kwargs:
             error = kwargs['micp_error']
-            lines = self.ax[1, 1].get_lines()
+            # lines = self.ax[1, 1].get_lines()
+            lines = self.ax[0, 1].get_lines()
             num_lines = len(lines)
             if num_lines:
                 x_data, y_data = lines[-1].get_data()  
@@ -342,8 +345,8 @@ class SegmentationWindow(DrawerWindow):
         
         total_keypoints = len(mask)
         total_segmented_keypoints = np.sum(mask)
-        print("keypoints", total_keypoints)
-        print("segmented keypoints", total_segmented_keypoints)
+        # print("keypoints", total_keypoints)
+        # print("segmented keypoints", total_segmented_keypoints)
         
         # self.scatter.remove() # remove previous scatter plot
         # #ff0000 (red) segmented

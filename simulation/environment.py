@@ -61,7 +61,7 @@ def scale(vec, _scale):
 def rotate(vec, _rotation):
   return _rotation @ vec
 
-def transform(vec, _scale, _rotation, _translation):
+def homogeneous_transform(vec, _scale, _rotation, _translation):
     vec = rotate(vec, _rotation)
     vec = scale(vec, _scale)
     vec = move(vec, _translation)

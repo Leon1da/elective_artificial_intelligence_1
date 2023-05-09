@@ -78,8 +78,22 @@ def rotation_to_direction_vectors(rotation):
     return dx, dy, dz
 
 def rotation_to_axis_angle(rotation):
-    angle = np.arccos((np.trace(rotation) - 1)*0.5)
+    # print(rotation_trace)
+    # rotation_trace = rotation_trace - 1
+    # print(rotation_trace)
+    # rotation_trace = rotation_trace * 0.5
+    # print(rotation_trace)
+    # arcos_rotation_trace = np.arccos(rotation_trace) 
+    # print(arcos_rotation_trace)
+    arg = (np.trace(rotation) - 1) * 0.5
+    # if arg < -1: arg = 2 + arg
+    # elif arg > 1: arg = -2 + arg 
     
+    # if arg > 1 or arg < -1: print("Invalid arguments arcos", arg)
+    angle = np.arccos(arg)
+    if angle == 0:
+        # singularity 
+        return None, 0
     r12, r13, r21, r23, r31, r32 = rotation[0, 1], rotation[0, 2], rotation[1, 0], rotation[1, 2], rotation[2, 0], rotation[2, 1]
     ax = (r32 - r23) / 2 * np.sin(angle)
     ay = (r13 - r31) / 2 * np.sin(angle)
@@ -87,7 +101,17 @@ def rotation_to_axis_angle(rotation):
     
     axis = np.array([ax, ay, az])
     return axis, angle
-    
+
+def srt_to_similarity(scale, rotation, translation):
+    S = np.eye(4)
+    S[3, 3] = scale
+    S[:3, :3] = rotation
+    S[:3, 3] = translation
+    return S
+
+def similarity_to_srt(similarity):
+    return similarity[3, 3], similarity[:3, :3], similarity[:3, 3]
+   
 def Rx(angle):
     R = np.zeros((3, 3))
     R[0, 0] = 1
@@ -143,7 +167,7 @@ def v2t(v):
     return T
 
 
-def transform(T, v):
+def homogeneous_transform(T, v):
     R = T[:3, :3]
     t = T[:3, 3]
     return R @ v + t

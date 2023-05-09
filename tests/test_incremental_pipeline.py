@@ -1,12 +1,15 @@
 import sys
-sys.path.append('/home/leonardo/elective_project/')
+sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
 
 
 
+from utils.dataset_utils import path_to_id
 from utils.geometric_utils import *
 from utils.vision_utils import *
 from utils.reconstruction_utils import *
 
+from evaluation import *
+        
 from drawer import *
 from dataset import DatasetType, SfMDataset
 from segmentator import *
@@ -18,9 +21,6 @@ import numpy as np
 import pycolmap
 
 import gc
-
-        
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Visualize COLMAP binary and text models")
@@ -48,6 +48,7 @@ def main():
     
     # ESTIMATED POSE
     tvecs = np.array([reconstruction.images[key].tvec for key in map_images_keys])
+    rotmat = np.array([quaternion_to_rotation(reconstruction.images[key].qvec) for key in map_images_keys])
     
     # reconstruction image filenames
     fns = np.array([reconstruction.images[key].name for key in map_images_keys])
@@ -59,6 +60,9 @@ def main():
     
     # GROUND TRUTH POSE
     gt_tvecs = np.array([data.gt_images[key].tvec for key in data.gt_images])
+    gt_rotmat = np.array([quaternion_to_rotation(data.gt_images[key].qvec) for key in data.gt_images])
+    
+    # print(np.divide(tvecs, gt_tvecs))
     
     # Load Image Segmentator
     image_segmentator_module = SegmentationModule()
@@ -79,12 +83,18 @@ def main():
     points_window = PointsWindow(WindowName.Points)
     drawer.add_window(points_window)
     
-    scale_statistics_window = ScaleEstimationWindow(WindowName.ScaleStatistics)
-    drawer.add_window(scale_statistics_window)    
+    # scale_statistics_window = ScaleEstimationWindow(WindowName.ScaleStatistics)
+    # drawer.add_window(scale_statistics_window)    
     
+    global_points = np.zeros(shape=(1, 3))
+    global_points_gt = np.zeros(shape=(1, 3))
+    global_points_sim_corrected = np.zeros(shape=(1, 3))
+        
+    
+    print(global_points.shape)
+    print(global_points_gt.shape)
     
     for image_key in map_images_keys:
-        
         # get reconstruction image by key
         image = reconstruction.images[image_key]
         
@@ -95,7 +105,7 @@ def main():
         # get corresponding 3d points
         points3d_indices = get_point3D_ids(points2d)
         points3d_coords = np.array([reconstruction.points3D[id].xyz for id in points3d_indices])
-        points3d_coords = np.array([point3d_coords @ np.diag([-1, 1, 1]) for point3d_coords in points3d_coords])
+        # points3d_coords = np.array([point3d_coords @ np.diag([-1, 1, 1]) for point3d_coords in points3d_coords])
         # points3d_coords = np.array([point3d_coords @ np.diag([1, -1, 1]) for point3d_coords in points3d_coords])
         # points3d_coords = np.array([point3d_coords @ np.diag([1, 1, -1]) for point3d_coords in points3d_coords])
         
@@ -119,110 +129,128 @@ def main():
         total_segmented_keypoints = np.sum(keypoints_segmentation_mask) # total keypoints segmentated in the current image
         # TODO a 'segmented keypoint' is a keypoint (u, v) inside a valid segmented region
         
+        print('Found', total_keypoints, 'inside the image.')
+        print('Found', total_segmented_keypoints, 'inside the segments.')
+        
+        if not total_segmented_keypoints: 
+            print('Skipping scale correction. No data available.')
+            continue
+        
         drawer.clear(window_name=WindowName.Segmentation)
         drawer.draw(window_name=WindowName.Segmentation, image=filename_rgb, segments=segments, keypoints=points, mask=keypoints_segmentation_mask)
         
         # keypoints outside the region segmented will not be used for optimization
-        # TODO: It simulates the RFID  (we obtain depth informations only by Beacons)
+        # TODO: It simulates the RFID  (we obtain depth informations only from Beacons)
         points2d_coords = points2d_coords[keypoints_segmentation_mask_idx]
         
-        
+        key = path_to_id(image.name)
         # 3d point in the world frame
-        depth_map = data.gt_images_depth[image_key]
+        depth_map = data.gt_images_depth[key]
 
         # get sensor reading for the 2d keypoints extracted (they are 3d points in the world frame)
         points3d_gt_coords = np.array([depth_map[v, u].xyz for u, v in points2d_coords])
         
-        # if 1 the sensor reading is valid
+        # 1 if the sensor reading is valid
         # 0 otherwise
         depth_sensor_mask = np.array([depth_map[v, u].error for u, v in points2d_coords])
         depth_sensor_mask_idx = np.array([id for id, m in enumerate(depth_sensor_mask) if m])
         
         # 3d points of the map
         points3d_coords = points3d_coords[depth_sensor_mask_idx]
-        # 3d points of the ground trutch (sensor readings)
+        # 3d points of the ground truth (sensor readings)
         points3d_gt_coords = points3d_gt_coords[depth_sensor_mask_idx] 
         
+        
+        global_points = np.vstack((global_points, points3d_coords))
+        global_points_gt = np.vstack((global_points_gt, points3d_gt_coords))
+        
         # Recovering
-        iterations = 50
-        dumping = 0.5
-        kernel_threshold = 0.05
-        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold)
-        Similarity, chi_stats, num_inliers = scale_estimator_module.recover_similarity(points=points3d_coords, measurements=points3d_gt_coords)
-        _scale, _rotation, _translation = Similarity[3, 3], Similarity[:3, :3], Similarity[:3, 3]
+        iterations = 100
+        dumping = 0.6
+        kernel_threshold = 0.005
+        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
+        Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity(points=global_points[1:, ], measurements=global_points_gt[1:, ])
         print("Similarity")
         print(Similarity)
-        
-        similarity_transformation_evolution, similarity_chi_evolution, similarity_num_inliers_evolution = scale_estimator_module.get_sicp_statistics()
         
         # correct the map points using the similarity (scale, rotation and translation)
         points3d_coords_similarity_correction = np.array([similarity_transform(Similarity, p) for p in points3d_coords])
         
-        # Compute the Error
-        similarity_error = np.mean(np.linalg.norm(points3d_gt_coords-points3d_coords_similarity_correction, axis=1))
-        
-        drawer.draw(window_name=WindowName.ScaleStatistics, 
-                    sicp_transformation_evolution=similarity_transformation_evolution, 
-                    sicp_chi_evolution=similarity_chi_evolution, 
-                    sicp_inliers_evolution=similarity_num_inliers_evolution,
-                    sicp_error=similarity_error)
-
-        
-        
         # correct the map poses using the similarity (scale, rotation and translation)
         tvecs_similarity_correction = np.array([similarity_transform(Similarity, tvec) for tvec in tvecs])
-    
-        iterations = 10
-        dumping = 0.7
-        kernel_threshold = 0.05
-        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold)
-        Affinity, chi_stats, num_inliers = scale_estimator_module.recover_linear_transformation(points=points3d_coords_similarity_correction, measurements=points3d_gt_coords)
-    
-        _scale, _rotation, _translation = Affinity[3, 3], Affinity[:3, :3], Affinity[:3, 3]
-        print("Affinity")
-        print(Affinity)
+        rotmat_similarity_correction = np.array([similarity_transform(Similarity, rot) for rot in rotmat])
         
-        # correct the map points using the affinity (rotation and translation)
-        points3d_coords_affinity_correction = np.array([transform(Affinity, p) for p in points3d_coords_similarity_correction])
+        global_points_sim_corrected = np.array([similarity_transform(Similarity, p) for p in global_points])
         
         # Compute the Error
-        linear_error = np.mean(np.linalg.norm(points3d_gt_coords-points3d_coords_affinity_correction, axis=1))
-        print('Mean Square Error:', linear_error)
+        ATE_sim = absolute_position_error(tvecs_similarity_correction, gt_tvecs)
+        print('Absolute Translation Error (Similarity):', ATE_sim)
         
-        linear_transformation_evolution, linear_chi_evolution, linear_num_inliers_evolution = scale_estimator_module.get_micp_statistics()
+        
+        ARE_sim = absolute_rotation_error(rotmat_similarity_correction, gt_rotmat)
+        print('Absolute Rotation Error (Similarity):', ARE_sim)
+        
         drawer.draw(window_name=WindowName.ScaleStatistics, 
-                    micp_transformation_evolution=linear_transformation_evolution, 
-                    micp_chi_evolution=linear_chi_evolution, 
-                    micp_inliers_evolution=linear_num_inliers_evolution,
-                    micp_error=linear_error)
+                    sicp_transformation_evolution=similarity_evolution, 
+                    sicp_chi_evolution=list(chi_evolution), 
+                    sicp_inliers_evolution=list(num_inliers_evolution),
+                    sicp_error=ATE_sim)
 
         
-        # correct the map poses using the affinity (rotation and translation)
-        tvecs_affinity_correction = np.array([transform(Affinity, p) for p in tvecs_similarity_correction])
+        iterations = 100
+        dumping = 0.6
+        kernel_threshold = 0.005
+        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
+        Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_linear_transformation(points=global_points_sim_corrected[1:, ], measurements=global_points_gt[1:, ])
+        print('Transform')
+        print(Transform)
         
+        # correct the map points using the affinity (rotation and translation)
+        points3d_coords_homogeneous_correction = np.array([homogeneous_transform(Transform, p) for p in points3d_coords_similarity_correction])
+    
+            
+        # correct the map poses using the affinity (rotation and translation)
+        tvecs_homogeneous_correction = np.array([homogeneous_transform(Transform, p) for p in tvecs_similarity_correction])
+        rotmat_homogeneous_correction = np.array([homogeneous_transform(Transform, rot) for rot in rotmat_similarity_correction])
+        
+        # Compute the Error
+        ATE_hom = absolute_position_error(tvecs_homogeneous_correction, gt_tvecs)
+        print('Absolute Translation Error (Transform):', ATE_hom)
+        
+        # ARE_hom = absolute_rotation_error(rotmat_homogeneous_correction, gt_rotmat)
+        # print('Absolute Rotation Error (Transform):', ARE_hom)
+         
+        # drawer.draw(window_name=WindowName.ScaleStatistics, 
+        #             micp_transformation_evolution=transform_evolution, 
+        #             micp_chi_evolution=list(chi_evolution), 
+        #             micp_inliers_evolution=list(num_inliers_evolution),
+        #             micp_error=linear_error)
+
         drawer.clear(window_name=WindowName.Points)
-        drawer.draw(window_name=WindowName.Points, points=points3d_coords, color='r')
-        drawer.draw(window_name=WindowName.Points, points=points3d_gt_coords, color='b')
-        drawer.draw(window_name=WindowName.Points, points=points3d_coords_similarity_correction, color='g')
-        drawer.draw(window_name=WindowName.Points, points=points3d_coords_affinity_correction, color='g')
+        drawer.draw(window_name=WindowName.Points, points=points3d_coords, color='#ff0000')
+        drawer.draw(window_name=WindowName.Points, points=points3d_gt_coords, color='#0000ff')
+        drawer.draw(window_name=WindowName.Points, points=points3d_coords_similarity_correction, color='#00ffff')
+        drawer.draw(window_name=WindowName.Points, points=points3d_coords_homogeneous_correction, color='#00ff00')
         
         
         drawer.clear(window_name=WindowName.Poses)
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs, color='r')
-        drawer.draw(window_name=WindowName.Poses, tvecs=gt_tvecs, color='b')
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_similarity_correction, color='g')
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_affinity_correction, color='g')
+        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs, color='#ff0000')
+        drawer.draw(window_name=WindowName.Poses, tvecs=gt_tvecs, color='#0000ff')
+        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_similarity_correction, color='#00ffff')
+        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_homogeneous_correction, color='#00ff00')
         
         
         drawer.update()
         
         # To avoid useless waste of memory space
         # we deallocate the sensor readings that accumulate over time
-        del data.gt_images_depth[image_key]
+        del data.gt_images_depth[key]
         gc.collect()
+        # input("Press Enter to continue...")
         
-    input("Press Enter to continue...")
         
+    input("Press Enter to exit...")
+            
         
         
         

@@ -23,11 +23,13 @@ class ScaleEstimatorModule:
         self.similarity_chi_evolution = []
         self.similarity_num_inliers_evolution = []
         self.similarity_transformation_evolution = []
-        
-    def configure(self, iterations, dumping, kernel_threshold):
+    
+       
+    def configure(self, iterations, dumping, kernel_threshold, verbose=False):
         self.iterations = iterations
         self.dumping = dumping
         self.kernel_threshold = kernel_threshold
+        self.verbose = verbose
     
     def reset(self):
         self.linear_transformation_guess = np.eye(4)
@@ -37,6 +39,7 @@ class ScaleEstimatorModule:
         self.iterations = 0
         self.dumping = 0
         self.kernel_threshold = 0
+        self.verbose = False
         
         
     def recover_similarity(self, points, measurements):
@@ -97,7 +100,7 @@ class ScaleEstimatorModule:
                 chi_stats[iteration] = chi_stats[iteration] + chi
                 H = H + J.T @ J
                 b = b + J.T @ e
-            # print(X)
+            if self.verbose: print(X)
                 
             if not np.linalg.det(H):
                 print("Singular Matrix")
@@ -133,7 +136,7 @@ class ScaleEstimatorModule:
                 
                 H = H + J.T @ J
                 b = b + J.T @ e
-            # print(X)
+            if self.verbose: print(X)
             if not np.linalg.det(H):
                 print("Singular Matrix")
                 return X, chi_stats, num_inliers, X_evolution

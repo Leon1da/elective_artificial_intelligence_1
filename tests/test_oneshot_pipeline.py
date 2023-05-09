@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/leonardo/elective_project/')
+sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
 
 
 
@@ -8,6 +8,8 @@ from utils.geometric_utils import *
 from utils.vision_utils import *
 from utils.reconstruction_utils import *
 
+from evaluation import *
+        
 from drawer import *
 from dataset import DatasetType, SfMDataset
 from segmentator import *
@@ -33,11 +35,7 @@ def main():
     
     
     args = parse_args()
-    
-    # load dataset
-    workdir = "/mnt/d"
-    data = SfMDataset(workdir, DatasetType.ICRA)
-    
+
     # load reconstruction
     reconstruction = pycolmap.Reconstruction(args.input_model)
     map_points_keys = sorted(reconstruction.points3D)
@@ -46,9 +44,14 @@ def main():
     
     # ESTIMATED POSE
     tvecs = np.array([reconstruction.images[key].tvec for key in map_images_keys])
+    rotmat = np.array([quaternion_to_rotation(reconstruction.images[key].qvec) for key in map_images_keys])
     
     # reconstruction image filenames
     fns = np.array([reconstruction.images[key].name for key in map_images_keys])
+    
+    # load dataset
+    workdir = "/mnt/d"
+    data = SfMDataset(workdir, DatasetType.ICRA)
     
     # load data ground truth poses
     data.load_poses()
@@ -57,6 +60,9 @@ def main():
     
     # GROUND TRUTH POSE
     gt_tvecs = np.array([data.gt_images[key].tvec for key in data.gt_images])
+    gt_rotmat = np.array([quaternion_to_rotation(data.gt_images[key].qvec) for key in data.gt_images])
+    
+    # print(np.divide(tvecs, gt_tvecs))
     
     # Load Image Segmentator
     image_segmentator_module = SegmentationModule()
@@ -64,8 +70,6 @@ def main():
     # Load Scale Estimator
     scale_estimator_module = ScaleEstimatorModule()
     
-    total_points = []
-    total_measurements = []
     
     # Init windows (Visualization)
     drawer = Drawer()
@@ -79,8 +83,8 @@ def main():
     points_window = PointsWindow(WindowName.Points)
     drawer.add_window(points_window)
     
-    scale_statistics_window = ScaleEstimationWindow(WindowName.ScaleStatistics)
-    drawer.add_window(scale_statistics_window)    
+    # scale_statistics_window = ScaleEstimationWindow(WindowName.ScaleStatistics)
+    # drawer.add_window(scale_statistics_window)    
     
     
     for image_key in map_images_keys:
@@ -97,7 +101,6 @@ def main():
         points3d_coords = np.array([point3d_coords @ np.diag([-1, 1, 1]) for point3d_coords in points3d_coords])
         # points3d_coords = np.array([point3d_coords @ np.diag([1, -1, 1]) for point3d_coords in points3d_coords])
         # points3d_coords = np.array([point3d_coords @ np.diag([1, 1, -1]) for point3d_coords in points3d_coords])
-        
         
         # load rgb image
         filename_rgb = data.load_image(image.name)
@@ -119,11 +122,19 @@ def main():
         total_segmented_keypoints = np.sum(keypoints_segmentation_mask) # total keypoints segmentated in the current image
         # TODO a 'segmented keypoint' is a keypoint (u, v) inside a valid segmented region
         
+        print('Found', total_keypoints, 'inside the image.')
+        print('Found', total_segmented_keypoints, 'inside the segments.')
+        
+        if not total_segmented_keypoints: 
+            print('Skipping scale correction. No data available.')
+            continue
+        
+        
         drawer.clear(window_name=WindowName.Segmentation)
         drawer.draw(window_name=WindowName.Segmentation, image=filename_rgb, segments=segments, keypoints=points, mask=keypoints_segmentation_mask)
         
         # keypoints outside the region segmented will not be used for optimization
-        # TODO: It simulates the RFID  (we obtain depth informations only by Beacons)
+        # TODO: It simulates the RFID  (we obtain depth informations only from Beacons)
         points2d_coords = points2d_coords[keypoints_segmentation_mask_idx]
         
         key = path_to_id(image.name)
@@ -143,74 +154,86 @@ def main():
         # 3d points of the ground trutch (sensor readings)
         points3d_gt_coords = points3d_gt_coords[depth_sensor_mask_idx] 
         
-        total_points.append(points3d_coords)
-        total_measurements.append(points3d_gt_coords)
         
-        points = np.array([p for tp in total_points for p in tp])    
-        measurements = np.array([m for tm in total_measurements for m in tm])    
-        print(points.shape)
-        print(measurements.shape)
+        s_, R_, t_ = absolute_scale_estimation_closed_form(points3d_coords,points3d_gt_coords)
+        print(s_, R_, t_)
+        input('Press enter to continue...')
+        
+        scale_estimator_module.similarity_transformation_guess = srt_to_similarity(s_, R_, t_)
         
         # Recovering
-        iterations = 100
+        iterations = 1000
         dumping = 0.6
-        kernel_threshold = 0.0001
-        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold)
-        Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity(points=points, measurements=measurements)
+        kernel_threshold = 0.001
+        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
+        Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity(points=points3d_coords, measurements=points3d_gt_coords)
+        s_, R_, t_ = similarity_to_srt(Similarity)
         print("Similarity")
         print(Similarity)
         
         # correct the map points using the similarity (scale, rotation and translation)
-        points3d_coords_similarity_correction = np.array([similarity_transform(Similarity, p) for p in points])
-        
-        # Compute the Error
-        similarity_error = np.mean(np.linalg.norm(points-points3d_coords_similarity_correction, axis=1))
-        print('Mean Square Error (Similarity):', similarity_error)
-        drawer.draw(window_name=WindowName.ScaleStatistics, 
-                    sicp_transformation_evolution=similarity_evolution, 
-                    sicp_chi_evolution=list(chi_evolution), 
-                    sicp_inliers_evolution=list(num_inliers_evolution),
-                    sicp_error=similarity_error)
-
-        
+        points3d_coords_similarity_correction = np.array([similarity_transform(Similarity, p) for p in points3d_coords])
         
         # correct the map poses using the similarity (scale, rotation and translation)
         tvecs_similarity_correction = np.array([similarity_transform(Similarity, tvec) for tvec in tvecs])
+        rotmat_similarity_correction = np.array([similarity_transform(Similarity, rot) for rot in rotmat])
+        
+        # Compute the Error
+        ATE_sim = absolute_position_error(tvecs_similarity_correction, gt_tvecs)
+        print('Absolute Translation Error (Similarity):', ATE_sim)
+                
+        # ARE_sim = absolute_rotation_error(rotmat_similarity_correction, gt_rotmat)
+        # print('Absolute Rotation Error (Similarity):', ARE_sim)
+        
+        # drawer.draw(window_name=WindowName.ScaleStatistics, 
+        #             sicp_transformation_evolution=similarity_evolution, 
+        #             sicp_chi_evolution=list(chi_evolution), 
+        #             sicp_inliers_evolution=list(num_inliers_evolution),
+        #             sicp_error=similarity_error)
     
-        iterations = 10
-        dumping = 0.7
-        kernel_threshold = 0.001
-        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold)
-        Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_linear_transformation(points=points3d_coords_similarity_correction, measurements=measurements)
+        scale_estimator_module.linear_transformation_guess = rotation_translation_to_homogeneous(R_, t_)
+        
+        iterations = 500
+        dumping = 0.6
+        kernel_threshold = 0.005
+        scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
+        Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_linear_transformation(points=points3d_coords_similarity_correction, measurements=points3d_gt_coords)
         print('Transform')
         print(Transform)
         
         # correct the map points using the affinity (rotation and translation)
-        points3d_coords_linear_correction = np.array([transform(Transform, p) for p in points3d_coords_similarity_correction])
+        points3d_coords_homogeneous_correction = np.array([homogeneous_transform(Transform, p) for p in points3d_coords_similarity_correction])
+    
+        # correct the map poses using the affinity (rotation and translation)
+        tvecs_homogeneous_correction = np.array([homogeneous_transform(Transform, p) for p in tvecs_similarity_correction])
+        rotmat_homogeneous_correction = np.array([homogeneous_transform(Transform, rot) for rot in rotmat_similarity_correction])
         
         # Compute the Error
-        linear_error = np.mean(np.linalg.norm(points-points3d_coords_linear_correction, axis=1))
-        print('Mean Square Error (Transform):', linear_error)
-        drawer.draw(window_name=WindowName.ScaleStatistics, 
-                    micp_transformation_evolution=transform_evolution, 
-                    micp_chi_evolution=list(chi_evolution), 
-                    micp_inliers_evolution=list(num_inliers_evolution),
-                    micp_error=linear_error)
+        ATE_hom = absolute_position_error(tvecs_homogeneous_correction, gt_tvecs)
+        print('Absolute Translation Error (Transform):', ATE_hom)
+        
+        # ARE_hom = absolute_rotation_error(rotmat_homogeneous_correction, gt_rotmat)
+        # print('Absolute Rotation Error (Transform):', ARE_hom)
+        
+        # drawer.draw(window_name=WindowName.ScaleStatistics, 
+        #             micp_transformation_evolution=transform_evolution, 
+        #             micp_chi_evolution=list(chi_evolution), 
+        #             micp_inliers_evolution=list(num_inliers_evolution),
+        #             micp_error=linear_error)
 
         
-        # correct the map poses using the affinity (rotation and translation)
-        tvecs_linear_correction = np.array([transform(Transform, p) for p in tvecs_similarity_correction])
-        
         drawer.clear(window_name=WindowName.Points)
-        drawer.draw(window_name=WindowName.Points, points=points3d_coords, color='r')
-        drawer.draw(window_name=WindowName.Points, points=points3d_gt_coords, color='b')
-        # drawer.draw(window_name=WindowName.Points, points=points3d_coords_linear_correction, color='g')
+        drawer.draw(window_name=WindowName.Points, points=points3d_coords, color='#ff0000')
+        drawer.draw(window_name=WindowName.Points, points=points3d_gt_coords, color='#0000ff')
+        drawer.draw(window_name=WindowName.Points, points=points3d_coords_similarity_correction, color='#00ffff')
+        drawer.draw(window_name=WindowName.Points, points=points3d_coords_homogeneous_correction, color='#00ff00')
         
         
         drawer.clear(window_name=WindowName.Poses)
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs, color='r')
-        drawer.draw(window_name=WindowName.Poses, tvecs=gt_tvecs, color='b')
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_linear_correction, color='g')
+        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs, color='#ff0000')
+        drawer.draw(window_name=WindowName.Poses, tvecs=gt_tvecs, color='#0000ff')
+        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_similarity_correction, color='#00ffff')
+        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_homogeneous_correction, color='#00ff00')
         
         
         drawer.update()
@@ -219,9 +242,11 @@ def main():
         # we deallocate the sensor readings that accumulate over time
         del data.gt_images_depth[key]
         gc.collect()
+        input("Press Enter to continue...")
+        break
         
-    input("Press Enter to continue...")
-        
+    input("Press Enter to exit...")
+            
         
         
         
