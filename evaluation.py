@@ -22,3 +22,11 @@ def absolute_rotation_error(rotation, gt_rotation):
     rotation_norm = np.mean(rotation_norm)    
     
     return rotation_norm
+
+def relative_position_error(absolute_position_error, trajectory_length):
+    # absolute_position_error : trajectory_length = percentage_error : 100
+    percentage_error = absolute_position_error * 100 / trajectory_length
+    return percentage_error
+
+def mean_relative_error(gt_tvec, est_tvec):
+    pass

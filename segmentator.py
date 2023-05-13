@@ -118,7 +118,7 @@ class SegmentationModule:
     def get_valid_segments(self, segments):
         return [segment for segment in segments if segment.valid]
      
-    def get_points_inside_segments(self, segments, points):
+    def get_keypoints_inside_segments(self, segments, points):
         shape = points.shape
         mask = np.zeros((shape[0]), dtype=int)
         for segment in segments:

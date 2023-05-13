@@ -3,7 +3,7 @@ sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
 
 
 
-from utils.dataset_utils import path_to_id
+from utils.dataset_utils import *
 from utils.geometric_utils import *
 from utils.vision_utils import *
 from utils.reconstruction_utils import *
@@ -62,6 +62,8 @@ def main():
     gt_tvecs = np.array([data.gt_images[key].tvec for key in data.gt_images])
     gt_rotmat = np.array([quaternion_to_rotation(data.gt_images[key].qvec) for key in data.gt_images])
     
+    gt_trajectory_length = compute_total_trajectory_displacement(gt_tvecs)    
+    
     # print(np.divide(tvecs, gt_tvecs))
     
     # Load Image Segmentator
@@ -77,8 +79,11 @@ def main():
     segmention_window = SegmentationWindow(WindowName.Segmentation, classes=image_segmentator_module.classes) 
     drawer.add_window(segmention_window)
     
-    pose_window = PosesWindow(WindowName.Poses)
-    drawer.add_window(pose_window)
+    posecomplete_window = PosesWindow(WindowName.PosesComplete)
+    drawer.add_window(posecomplete_window)
+    
+    poseevaluation_window = PosesWindow(WindowName.PosesEvaluation)
+    drawer.add_window(poseevaluation_window)
     
     points_window = PointsWindow(WindowName.Points)
     drawer.add_window(points_window)
@@ -115,7 +120,7 @@ def main():
         
         segments = image_segmentator_module.segmentation(rgb_img)
         # segments = tracker.get_valid_segments(segments)
-        keypoints_segmentation_mask, points = image_segmentator_module.get_points_inside_segments(segments, points2d_coords)
+        keypoints_segmentation_mask, points = image_segmentator_module.get_keypoints_inside_segments(segments, points2d_coords)
         keypoints_segmentation_mask_idx = np.array([id for id, m in enumerate(keypoints_segmentation_mask) if m])
         
         total_keypoints = len(keypoints_segmentation_mask) # total keypoints found in the current image
@@ -154,10 +159,12 @@ def main():
         # 3d points of the ground trutch (sensor readings)
         points3d_gt_coords = points3d_gt_coords[depth_sensor_mask_idx] 
         
-        
+        print('Computing initial guess..')
+        print('Run Closed-form Absolute scale estimation..')
         s_, R_, t_ = absolute_scale_estimation_closed_form(points3d_coords,points3d_gt_coords)
-        print(s_, R_, t_)
-        input('Press enter to continue...')
+        # print(s_, R_, t_)
+        print('OK.')
+        print('scale:', s_)
         
         scale_estimator_module.similarity_transformation_guess = srt_to_similarity(s_, R_, t_)
         
@@ -166,7 +173,15 @@ def main():
         dumping = 0.6
         kernel_threshold = 0.001
         scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
+        print('Run Similarity Iterative Closest Point..')
+        print('##### Configuration #####')
+        print('### Iteration:', iterations)
+        print('### Dumping:', dumping)
+        print('### Kernel threshold:', kernel_threshold)
+        print('### Keypoints number:', total_segmented_keypoints)
+        print('[START] opimization..')
         Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity(points=points3d_coords, measurements=points3d_gt_coords)
+        print('[END] ok.')    
         s_, R_, t_ = similarity_to_srt(Similarity)
         print("Similarity")
         print(Similarity)
@@ -178,26 +193,23 @@ def main():
         tvecs_similarity_correction = np.array([similarity_transform(Similarity, tvec) for tvec in tvecs])
         rotmat_similarity_correction = np.array([similarity_transform(Similarity, rot) for rot in rotmat])
         
-        # Compute the Error
-        ATE_sim = absolute_position_error(tvecs_similarity_correction, gt_tvecs)
-        print('Absolute Translation Error (Similarity):', ATE_sim)
-                
-        # ARE_sim = absolute_rotation_error(rotmat_similarity_correction, gt_rotmat)
-        # print('Absolute Rotation Error (Similarity):', ARE_sim)
         
-        # drawer.draw(window_name=WindowName.ScaleStatistics, 
-        #             sicp_transformation_evolution=similarity_evolution, 
-        #             sicp_chi_evolution=list(chi_evolution), 
-        #             sicp_inliers_evolution=list(num_inliers_evolution),
-        #             sicp_error=similarity_error)
-    
         scale_estimator_module.linear_transformation_guess = rotation_translation_to_homogeneous(R_, t_)
         
         iterations = 500
         dumping = 0.6
         kernel_threshold = 0.005
         scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
+
+        print('Run Rigid Iterative Closest Point..')
+        print('##### Configuration #####')
+        print('### Iteration:', iterations)
+        print('### Dumping:', dumping)
+        print('### Kernel threshold:', kernel_threshold)
+        print('### Keypoints number:', total_segmented_keypoints)
+        print('[START] opimization..')
         Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_linear_transformation(points=points3d_coords_similarity_correction, measurements=points3d_gt_coords)
+        print('[END] ok.')
         print('Transform')
         print(Transform)
         
@@ -208,19 +220,46 @@ def main():
         tvecs_homogeneous_correction = np.array([homogeneous_transform(Transform, p) for p in tvecs_similarity_correction])
         rotmat_homogeneous_correction = np.array([homogeneous_transform(Transform, rot) for rot in rotmat_similarity_correction])
         
+        
+        # Normalization (We center all the trayectory in absolute zero)
+        gt_tvec_normalized = np.array([t - gt_tvecs[0] for t in gt_tvecs]) # ground-truth
+        tvec_normalized = np.array([t - tvecs[0] for t in tvecs]) # estimation
+        tvecs_similarity_correction_normalized = np.array([t - tvecs_similarity_correction[0] for t in tvecs_similarity_correction]) # SICP
+        tvecs_homogeneous_correction_normalized = np.array([t - tvecs_homogeneous_correction[0] for t in tvecs_homogeneous_correction]) # SICP + RICP
+        
         # Compute the Error
-        ATE_hom = absolute_position_error(tvecs_homogeneous_correction, gt_tvecs)
+        
+        ATE_sim = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
+        print('Absolute Translation Error (Similarity):', ATE_sim)
+        
+        ATE_hom = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
         print('Absolute Translation Error (Transform):', ATE_hom)
         
-        # ARE_hom = absolute_rotation_error(rotmat_homogeneous_correction, gt_rotmat)
-        # print('Absolute Rotation Error (Transform):', ARE_hom)
+        traj_length = gt_trajectory_length[-1]
+        ATE_percentage = relative_position_error(ATE_hom, traj_length)
+        print('Percentage Translation Error / Trajectory Length:', ATE_percentage, '/', traj_length)
         
-        # drawer.draw(window_name=WindowName.ScaleStatistics, 
-        #             micp_transformation_evolution=transform_evolution, 
-        #             micp_chi_evolution=list(chi_evolution), 
-        #             micp_inliers_evolution=list(num_inliers_evolution),
-        #             micp_error=linear_error)
-
+            
+        
+        # plots 
+        # 1) translation error (percentage) / trajectory length 
+        # 2) translation error (meters) / number icp iterations
+        # 3) translation error (meters) / number keyframes
+        # 3) translation error (meters) / number keypoints (we mean keypoints used for optimization)
+        
+        
+        drawer.clear(window_name=WindowName.PosesComplete)
+        drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvec_normalized, color='#ff0000')
+        drawer.draw(window_name=WindowName.PosesComplete, tvecs=gt_tvec_normalized, color='#0000ff')
+        drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvecs_similarity_correction_normalized, color='#00ffff')
+        drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+        
+        drawer.clear(window_name=WindowName.PosesEvaluation)
+        drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=gt_tvec_normalized, color='#0000ff')
+        drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+        
+        
+        
         
         drawer.clear(window_name=WindowName.Points)
         drawer.draw(window_name=WindowName.Points, points=points3d_coords, color='#ff0000')
@@ -229,41 +268,30 @@ def main():
         drawer.draw(window_name=WindowName.Points, points=points3d_coords_homogeneous_correction, color='#00ff00')
         
         
-        drawer.clear(window_name=WindowName.Poses)
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs, color='#ff0000')
-        drawer.draw(window_name=WindowName.Poses, tvecs=gt_tvecs, color='#0000ff')
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_similarity_correction, color='#00ffff')
-        drawer.draw(window_name=WindowName.Poses, tvecs=tvecs_homogeneous_correction, color='#00ff00')
-        
-        
         drawer.update()
         
         # To avoid useless waste of memory space
         # we deallocate the sensor readings that accumulate over time
         del data.gt_images_depth[key]
         gc.collect()
-        input("Press Enter to continue...")
         break
-        
-    input("Press Enter to exit...")
+    
+    
+    input("Press Enter to print results on the browser.")
+    
+    fig = BrowserDrawer()
+    
+    # draw 3D map pose
+    fig.draw_points(tvecs, color=np.array([[255], [0], [0]]), name='Estimation')
+    fig.draw_points(gt_tvecs, color=np.array([[0], [0], [255]]), name='Ground Truth')
+    fig.draw_points(tvecs_similarity_correction, color=np.array([[0], [255], [255]]), name='Similarity')
+    fig.draw_points(tvecs_homogeneous_correction, color=np.array([[0], [255], [0]]), name='Rigid')
+    
+    fig.show('test_oneshot_pipeline')
+    
             
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-    # fig.show()
-    
-    
-    
-    
-
 
 if __name__ == "__main__":
     main()

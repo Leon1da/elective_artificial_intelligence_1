@@ -14,7 +14,7 @@ class BrowserDrawer:
     
     
     
-    def draw_frames(self, frames, colors, sizes, names):
+    def draw_frames(self, frames, colors=None, sizes=None, names='frames'):
         for frame, color, size, name in zip(frames, colors, sizes, names):
             self.draw_frame(frame, color, size, name)
         
@@ -64,7 +64,8 @@ class WindowName(enum.Enum):
     ScaleStatistics = 'ScaleStatistics'
     Segmentation = 'Segmentation'
     Points = 'Points'
-    Poses = 'Poses'
+    PosesComplete = 'PosesComplete'
+    PosesEvaluation = 'PosesEvaluation'
 
       
 
@@ -88,7 +89,7 @@ class ScaleEstimationWindow(DrawerWindow):
     
     def __init__(self, window_name: WindowName):
         fig, ax = plt.subplots(2,4)
-        fig, ax = plt.subplots(1, 2)
+        # fig, ax = plt.subplots(1, 2)
         
         self.fig = fig
         self.ax = ax
@@ -269,8 +270,139 @@ class ScaleEstimationWindow(DrawerWindow):
             self.ax[1, 3].plot(iterations, inliers_evolution, c='b')
             self.ax[1, 3].set_title('micp_inliers_evolution')
         
-         
+        # GENERAL
+        if 'absolute_error_iterations' in kwargs:
+            absolute_error_iterations = kwargs['absolute_error_iterations']
+            ate, iteration = absolute_error_iterations[0], absolute_error_iterations[1]
+            print(ate, iteration)
+                
+            lines = self.ax[0, 0].get_lines()
+            num_lines = len(lines)
+            if num_lines:
+                x_data, y_data = lines[-1].get_data()  
+                last_iteration = x_data[-1]
+                last_ate = y_data[-1]
+                iteration_ = [last_iteration, iteration]
+                ate_ = [last_ate, ate]
+            else:
+                iteration_ = [iteration]
+                ate_ = [ate]
+            
+            self.ax[0, 0].plot(iteration_, ate_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[0, 0].set_title('absolute_error_iterations')
         
+        if 'absolute_error_keypoints' in kwargs: 
+            
+            absolute_error_keypoints = kwargs['absolute_error_keypoints']
+            ate, keypoints_number = absolute_error_keypoints[0], absolute_error_keypoints[1]
+            print(ate, keypoints_number)
+                
+            lines = self.ax[0, 3].get_lines()
+            num_lines = len(lines)
+            if num_lines:
+                x_data, y_data = lines[-1].get_data()  
+                last_keypoints_number = x_data[-1]
+                last_ate = y_data[-1]
+                keypoints_number_ = [last_keypoints_number, keypoints_number]
+                ate_ = [last_ate, ate]
+            else:
+                keypoints_number_ = [keypoints_number]
+                ate_ = [ate]
+            
+            self.ax[0, 3].plot(keypoints_number_, ate_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[0, 3].set_title('absolute_error_keyframes')
+        
+        if 'absolute_error_keyframes' in kwargs:
+            absolute_error_keyframes = kwargs['absolute_error_keyframes']
+            ate, keyframe_number = absolute_error_keyframes[0], absolute_error_keyframes[1]
+            print(ate, keyframe_number)
+                
+            lines = self.ax[0, 2].get_lines()
+            num_lines = len(lines)
+            if num_lines:
+                x_data, y_data = lines[-1].get_data()  
+                last_keyframe_number = x_data[-1]
+                last_ate = y_data[-1]
+                keyframe_number_ = [last_keyframe_number, keyframe_number]
+                ate_ = [last_ate, ate]
+            else:
+                keyframe_number_ = [keyframe_number]
+                ate_ = [ate]
+            
+            self.ax[0, 2].plot(keyframe_number_, ate_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[0, 2].set_xlabel('# keyframes')
+            self.ax[0, 2].set_ylabel('ATE [m]')
+            
+            self.ax[0, 2].set_title('absolute_error_keyframes')
+        
+        if 'percentage_error_trajectory_length' in kwargs:
+            percentage_error_trajectory_length = kwargs['percentage_error_trajectory_length']
+            percentage_ate, trajectory_length = percentage_error_trajectory_length[0], percentage_error_trajectory_length[1]
+            print(percentage_ate, trajectory_length)
+                
+            lines = self.ax[0, 1].get_lines()
+            num_lines = len(lines)
+            if num_lines:
+                x_data, y_data = lines[-1].get_data()  
+                last_trajectory_length = x_data[-1]
+                last_percentage_ate = y_data[-1]
+                trajectory_length_ = [last_trajectory_length, trajectory_length]
+                percentage_ate_ = [last_percentage_ate, percentage_ate]
+            else:
+                trajectory_length_ = [trajectory_length]
+                percentage_ate_ = [percentage_ate]
+            
+            self.ax[0, 1].plot(trajectory_length_, percentage_ate_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[0, 1].set_ylim([0, 100])
+            self.ax[0, 1].set_ylabel('translation error [%]')
+            self.ax[0, 1].set_xlabel('trajectory length [m]')
+            # self.ax[0, 1].set_title('percentage_error_trajectory_length')
+
+        if 'scale_keyframes' in kwargs:
+            scale_keyframes = kwargs['scale_keyframes']
+            scale, keyframes = scale_keyframes[0], scale_keyframes[1]
+            print(scale, keyframes)
+                
+            lines = self.ax[1, 0].get_lines()
+            num_lines = len(lines)
+            if num_lines:
+                x_data, y_data = lines[-1].get_data()  
+                last_keyframes = x_data[-1]
+                last_scale = y_data[-1]
+                
+                scale_ = [last_scale, scale]
+                keyframes_ = [last_keyframes, keyframes]
+            else:
+                scale_ = [scale]
+                keyframes_ = [keyframes]
+            
+            self.ax[1, 0].plot(keyframes_, scale_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[1, 0].set_xlabel('# keyframe')
+            self.ax[1, 0].set_ylabel('scale')
+            # self.ax[1, 0].set_title('scale_keyframes')
+        
+        if 'keypoints' in kwargs:
+            keypoints = kwargs['keypoints']
+            keyframes, total_keypoints, segmentated_keypoints, optimization_keypoints = keypoints[0], keypoints[1], keypoints[2], keypoints[3]
+            
+            bins = [keyframes, keyframes + 1]
+            
+            x = [total_keypoints]
+            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#29339B", alpha=0.5, fill=True)
+            
+            x = [segmentated_keypoints]
+            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#348AA7", alpha=0.5, fill=True)
+
+            x = [optimization_keypoints]            
+            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#5DD39E", alpha=0.5, fill=True)
+            
+            self.ax[1, 1].set_xlabel('# keyframe')
+            self.ax[1, 1].set_ylabel('# keypoints')
+            
+            c1 = mpatches.Patch(color='#29339B', label='segmented keypoints')
+            c2 = mpatches.Patch(color='#348AA7', label='total keypoints')
+            c3 = mpatches.Patch(color='#5DD39E', label='otimization keypoints')
+            self.ax[1, 1].legend(handles=[c1, c2, c3])
             
     
     
@@ -314,6 +446,9 @@ class SegmentationWindow(DrawerWindow):
             self.draw_keypoints(keypoints, mask)    
          
     def draw_image_and_segments(self, image, segments):
+        
+        self.handles = []
+        
         # draw image
         image = plt.imread(image)
         self.ax.imshow(image)
@@ -340,11 +475,12 @@ class SegmentationWindow(DrawerWindow):
                        
         # draw segments 
         self.ax.imshow(color_mask)
+        self.ax.legend(handles = self.handles)
         
     def draw_keypoints(self, keypoints, mask=None):
         
-        total_keypoints = len(mask)
-        total_segmented_keypoints = np.sum(mask)
+        # total_keypoints = len(mask)
+        # total_segmented_keypoints = np.sum(mask)
         # print("keypoints", total_keypoints)
         # print("segmented keypoints", total_segmented_keypoints)
         
@@ -356,7 +492,6 @@ class SegmentationWindow(DrawerWindow):
         ys = keypoints[:, 1]
         scatter = self.ax.scatter(xs, ys, s=0.1, c=colors)
         self.scatters.append(scatter)
-   
    
 class PointsWindow(DrawerWindow):
     def __init__(self, window_name: WindowName):
@@ -386,11 +521,29 @@ class PointsWindow(DrawerWindow):
 class PosesWindow(DrawerWindow):
     
     def __init__(self, window_name: WindowName):
+        
+        
         fig = plt.figure(figsize=(5, 5))
-        ax = fig.add_subplot(projection='3d')
+        ax1 = fig.add_subplot(221, projection='3d') # 3d plot
+        ax1.set_title('poses')
+        
+        ax2 = fig.add_subplot(222) # xy plot
+        ax2.set_xlabel('x [m]')
+        ax2.set_ylabel('y [m]')
+        
+        ax3 = fig.add_subplot(223) # xz plot
+        ax3.set_xlabel('x [m]')
+        ax3.set_ylabel('z [m]')
+        
+        ax4 =fig.add_subplot(224) # yz plot
+        ax4.set_xlabel('y [m]')
+        ax4.set_ylabel('z [m]')
+        
+    
         
         self.fig = fig
-        self.ax = ax
+        self.ax = [ax1, ax2, ax3, ax4]
+        
         self.scatters = []
         
         super().__init__(window_name)
@@ -406,11 +559,17 @@ class PosesWindow(DrawerWindow):
         xs = tvecs[:, 0]
         ys = tvecs[:, 1]
         zs = tvecs[:, 2]
-        scatter = self.ax.scatter(xs, ys, zs, marker='.', c=color, linewidths=0.2)
-        self.scatters.append(scatter)
-    
-
-    
+        
+        self.ax[0].scatter(xs, ys, zs, marker='.', c=color, s=0.2)
+        self.ax[1].plot(xs, ys, c=color)
+        self.ax[2].plot(xs, zs, c=color)
+        self.ax[3].plot(ys, zs, c=color)
+        
+        
+    def clear(self):
+        for axis in self.ax:
+            axis.cla()
+        
 class Drawer:
     
     def __init__(self, windows={}) -> None:
