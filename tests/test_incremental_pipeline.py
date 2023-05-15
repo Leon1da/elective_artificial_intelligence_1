@@ -165,7 +165,7 @@ def main():
         global_points_gt = np.vstack((global_points_gt, points3d_gt_coords))[1:, ]
         num_global_points = global_points.shape[0] - 1
         
-        # Random Rampling 
+        # Random Sampling 
         min_sampling_num = 100
         max_sampling_num = 5000
         sampling_percentage = 0.1 # 10 %
@@ -258,16 +258,22 @@ def main():
         
         # Compute the Error
         
-        ATE_sim = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
-        print('Absolute Translation Error (Similarity):', ATE_sim)
+        ate_mean_similarity, ate_std_similarity, ate_min_similarity = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
+        print('Absolute Translation Error (SICP):')
+        print('MEAN', ate_mean_similarity)
+        print('STD', ate_std_similarity)
+        print('MIN', ate_min_similarity)
         
-        ATE_hom = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
-        print('Absolute Translation Error (Transform):', ATE_hom)
+        ate_mean_rigid, ate_std_rigid, ate_min_rigid = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
+        print('Absolute Translation Error (RICP):')
+        print('MEAN', ate_mean_rigid)
+        print('STD', ate_std_rigid)
+        print('MIN', ate_min_rigid)
         
         # compute the error percentage with respect to the trajectory lenght
         traj_length = gt_trajectory_length[index]
         if traj_length:
-            ATE_percentage = relative_position_error(ATE_hom, traj_length)
+            ATE_percentage = relative_position_error(ate_mean_rigid, traj_length)
         else:
             ATE_percentage = 100
         print('Percentage Translation Error / Trajectory Length:', ATE_percentage, '/', traj_length)
@@ -295,7 +301,7 @@ def main():
         drawer.draw(window_name=WindowName.ScaleStatistics, 
                     # absolute_error_iterations = [ATE_hom, total_scale_estimator_iterations],
                     # absolute_error_keypoints = [ATE_hom, num_global_points], 
-                    absolute_error_keyframes = [ATE_hom, index], 
+                    absolute_error_keyframes = [ate_mean_rigid, index], 
                     percentage_error_trajectory_length = [ATE_percentage, traj_length],
                     scale_keyframes = [Similarity[3, 3], index], 
                     # keypoints = [index, total_keypoints, total_segmented_keypoints, sampling_num]

@@ -3,7 +3,7 @@ sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
 
 
 
-from utils.dataset_utils import path_to_id
+from utils.dataset_utils import *
 from utils.geometric_utils import *
 from utils.vision_utils import *
 from utils.reconstruction_utils import *
@@ -63,11 +63,22 @@ def main():
     gt_tvecs = np.array([data.gt_images[key].tvec for key in data.gt_images])
     gt_rotmat = np.array([quaternion_to_rotation(data.gt_images[key].qvec) for key in data.gt_images])
 
-
-    print(tvecs.shape)
-    print(gt_tvecs.shape)
+    gt_trajectory_length = compute_total_trajectory_displacement(gt_tvecs)    
+    
+    # print(np.divide(tvecs, gt_tvecs))
+    
+    
     # Load Scale Estimator
     scale_estimator_module = ScaleEstimatorModule()
+    
+    
+    # Init windows (Visualization)
+    drawer = Drawer()
+    
+    drawer.add_window(PosesWindow(WindowName.PosesComplete))
+    
+    drawer.add_window(PosesWindow(WindowName.PosesEvaluation))
+
     
     # Recovering
     iterations = 1000
@@ -119,10 +130,38 @@ def main():
     tvecs_homogeneous_correction = np.array([homogeneous_transform(Transform, p) for p in tvecs_similarity_correction])
     rotmat_homogeneous_correction = np.array([homogeneous_transform(Transform, rot) for rot in rotmat_similarity_correction])
     
+    # Normalization (We center all the trayectory in absolute zero)
+    gt_tvec_normalized = np.array([t - gt_tvecs[0] for t in gt_tvecs]) # ground-truth
+    tvec_normalized = np.array([t - tvecs[0] for t in tvecs]) # estimation
+    tvecs_similarity_correction_normalized = np.array([t - tvecs_similarity_correction[0] for t in tvecs_similarity_correction]) # SICP
+    tvecs_homogeneous_correction_normalized = np.array([t - tvecs_homogeneous_correction[0] for t in tvecs_homogeneous_correction]) # SICP + RICP
+    
     # Compute the Error
-    ATE_hom = absolute_position_error(tvecs_homogeneous_correction, gt_tvecs)
+    
+    ATE_sim = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
+    print('Absolute Translation Error (Similarity):', ATE_sim)
+    
+    ATE_hom = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
     print('Absolute Translation Error (Transform):', ATE_hom)
     
+    traj_length = gt_trajectory_length[-1]
+    ATE_percentage = relative_position_error(ATE_hom, traj_length)
+    print('Percentage Translation Error / Trajectory Length:', ATE_percentage, '/', traj_length)
+    
+    drawer.clear(window_name=WindowName.PosesComplete)
+    drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvec_normalized, color='#ff0000')
+    drawer.draw(window_name=WindowName.PosesComplete, tvecs=gt_tvec_normalized, color='#0000ff')
+    drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvecs_similarity_correction_normalized, color='#00ffff')
+    drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+    
+    drawer.clear(window_name=WindowName.PosesEvaluation)
+    drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=gt_tvec_normalized, color='#0000ff')
+    drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+    
+    drawer.update()
+    
+    input('Press enter to plot on browser.')
+       
         
     
     fig = BrowserDrawer()

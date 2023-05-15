@@ -227,16 +227,20 @@ def main():
         tvecs_similarity_correction_normalized = np.array([t - tvecs_similarity_correction[0] for t in tvecs_similarity_correction]) # SICP
         tvecs_homogeneous_correction_normalized = np.array([t - tvecs_homogeneous_correction[0] for t in tvecs_homogeneous_correction]) # SICP + RICP
         
-        # Compute the Error
+        ate_mean_similarity, ate_std_similarity, ate_min_similarity = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
+        print('Absolute Translation Error (SICP):')
+        print('MEAN', ate_mean_similarity)
+        print('STD', ate_std_similarity)
+        print('MIN', ate_min_similarity)
         
-        ATE_sim = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
-        print('Absolute Translation Error (Similarity):', ATE_sim)
-        
-        ATE_hom = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
-        print('Absolute Translation Error (Transform):', ATE_hom)
+        ate_mean_rigid, ate_std_rigid, ate_min_rigid = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
+        print('Absolute Translation Error (RICP):')
+        print('MEAN', ate_mean_rigid)
+        print('STD', ate_std_rigid)
+        print('MIN', ate_min_rigid)
         
         traj_length = gt_trajectory_length[-1]
-        ATE_percentage = relative_position_error(ATE_hom, traj_length)
+        ATE_percentage = relative_position_error(ate_mean_rigid, traj_length)
         print('Percentage Translation Error / Trajectory Length:', ATE_percentage, '/', traj_length)
         
             
