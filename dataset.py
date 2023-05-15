@@ -21,14 +21,14 @@ class SfMDataset:
         # - images (.ppm)
         # - silhouettes (.pgm)
 
-        fns = os.listdir(dataset_path + "/images")
-        self.images_fn = sorted(list([dataset_path + "/images/" + fn for fn in fns])) 
+        fns = os.listdir(self.dataset_path + "/images")
+        self.images_fn = sorted(list([self.dataset_path + "/images/" + fn for fn in fns])) 
         
-        fns = os.listdir(dataset_path + "/silhouettes")
-        self.silhouettes_fn = sorted(list([dataset_path + "/silhouettes/" + fn for fn in fns])) 
+        fns = os.listdir(self.dataset_path + "/silhouettes")
+        self.silhouettes_fn = sorted(list([self.dataset_path + "/silhouettes/" + fn for fn in fns])) 
         
-        fns = os.listdir(dataset_path + "/calib")
-        self.calibs_fn = sorted(list([dataset_path + "/calib/" + fn for fn in fns])) 
+        fns = os.listdir(self.dataset_path + "/calib")
+        self.calibs_fn = sorted(list([self.dataset_path + "/calib/" + fn for fn in fns])) 
       
       elif dataset_name == DatasetType.ICRA:
             # Folders:
