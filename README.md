@@ -2,7 +2,6 @@
 
 This repo contains the code for the project **Absolute Scale Estimation for monocular SfM using beacons**
 
-### Abstract
 
 
 ## Installation
