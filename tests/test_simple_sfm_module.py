@@ -1,11 +1,13 @@
-import sys
-sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
+import sys, os
+sys.path.append(os.getcwd())
+
 
 import numpy as np
 from pathlib import Path
 import pycolmap
 
-workdir = '/mnt/d'
+workdir = os.getcwd()
+
 
 images = Path(workdir + '/data/icra_data/livingroom1-color/')
 outputs = Path('reconstruction_output/')

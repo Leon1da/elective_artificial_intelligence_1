@@ -1,5 +1,5 @@
-import sys
-sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
+import sys, os
+sys.path.append(os.getcwd())
 
 from pathlib import Path
 from hloc import extract_features, match_features, reconstruction, pairs_from_exhaustive
@@ -7,7 +7,7 @@ from hloc import extract_features, match_features, reconstruction, pairs_from_ex
 import tqdm
 import numpy as np
 
-workdir = '/mnt/d'
+workdir = os.getcwd()
     
 images = Path(workdir + '/data/icra_data/')
 outputs = Path('reconstruction_output/')

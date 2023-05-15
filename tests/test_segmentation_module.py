@@ -1,5 +1,6 @@
-import sys
-sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
+import sys, os
+sys.path.append(os.getcwd())
+
 
 from dataset import DatasetType, SfMDataset
 from segmentator import SegmentationModule
@@ -10,7 +11,7 @@ from PIL import Image
 
 def main():
     
-    workdir = "/mnt/d"
+    workdir = os.getcwd()
     
     data = SfMDataset(workdir, DatasetType.ICRA)
     # data.load_poses()
