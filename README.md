@@ -16,7 +16,7 @@ Tested on Ubuntu 20.04 LTS + Python 3.8
 Install COLMAP (https://github.com/colmap/colmap) and hloc (https://github.com/cvg/Hierarchical-Localization) to start the mapping phase. Note that some maps are already provided with the dataset.
 
 ### Dataset
-Unzip livingroom1-color.zip, livingroom1-depth-clean.zip inside data/icra_data/
+Unzip icra_data.zip inside data/icra_data/
 
 
 ## Run the complete pipelines
@@ -24,13 +24,13 @@ Unzip livingroom1-color.zip, livingroom1-depth-clean.zip inside data/icra_data/
 There are two ways to run the pipeline:
 
 
-Incrementally adjust the scale using the available data caming from the beacons:
+Incrementally adjust the scale using the available data coming from the beacons:
 ```
 python tests/test_incremental_pipeline.py --input_model reconstruction_outputs/<recostruction_sequence>/sfm/
 ```
 
 
-Compute the scale drift correction once:
+Compute the scale correction oneshot:
 ```
 python tests/test_oneshot_pipeline.py --input_model reconstruction_outputs/<recostruction_sequence>/sfm/
 ```
@@ -42,8 +42,8 @@ python tests/test_oneshot_pipeline.py --input_model reconstruction_outputs/<reco
 ### test_scale_estimator_module.py
 1. generate a point clouds (blue)
 2. generate a sets of measurements for the point cloud (red)
-3. estimate the similarity that aligneate the two point clouds (cyan)
-4. refine the obtained solution estimating an linear transformation between the points and the measurements corrected with the similarity above (green)
+3. estimate the similarity that aligns the two point clouds (cyan)
+4. refine the obtained solution estimating a linear transformation between the points and the measurements corrected with the similarity above (green)
 
 ```
 python tests/test_scale_estimator_module.py
