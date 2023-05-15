@@ -544,6 +544,7 @@ class PosesWindow(DrawerWindow):
         self.fig = fig
         self.ax = [ax1, ax2, ax3, ax4]
         
+        self.plots = []
         self.scatters = []
         
         super().__init__(window_name)
@@ -560,15 +561,20 @@ class PosesWindow(DrawerWindow):
         ys = tvecs[:, 1]
         zs = tvecs[:, 2]
         
-        self.ax[0].scatter(xs, ys, zs, marker='.', c=color, s=0.2)
-        self.ax[1].plot(xs, ys, c=color)
-        self.ax[2].plot(xs, zs, c=color)
-        self.ax[3].plot(ys, zs, c=color)
+        scatter = self.ax[0].scatter(xs, ys, zs, marker='.', c=color, s=0.2)
+        p1 = self.ax[1].plot(xs, ys, c=color)[0]
+        p2 = self.ax[2].plot(xs, zs, c=color)[0]
+        p3 = self.ax[3].plot(ys, zs, c=color)[0]
         
-        
+        self.plots = [p1, p2, p3]
+        self.scatters.append(scatter)
+     
+            
     def clear(self):
-        for axis in self.ax:
-            axis.cla()
+        for plot in self.plots:
+            plot.remove()
+
+        super().clear()
         
 class Drawer:
     

@@ -19,7 +19,7 @@ def compute_total_trajectory_displacement(gt_tvecs):
     gt_trajectory_length = [0]
     for i in np.arange(num_tvecs - 1):
         actual_displacement = gt_trajectory_length[-1]
-        displacement = np.linalg.norm(gt_tvecs[i] - gt_tvecs[i + 1]) * 10
+        displacement = np.linalg.norm(gt_tvecs[i] - gt_tvecs[i + 1])
         total_displacement = actual_displacement + displacement
         gt_trajectory_length.append(total_displacement)
     return gt_trajectory_length
