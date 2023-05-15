@@ -15,9 +15,9 @@ Tested on Ubuntu 20.04 LTS + Python 3.8
 #### Optional:
 Install COLMAP (https://github.com/colmap/colmap) and hloc (https://github.com/cvg/Hierarchical-Localization) to start the mapping phase. Note that some maps are already provided with the dataset.
 
-### Dataset
-Unzip icra_data.zip inside data/icra_data/
-
+### Data
+- Unzip icra_data.zip inside data/icra_data/
+- Unzip reconstruction_outputs.zip inside reconstruction_outputs/
 
 ## Run the complete pipelines
 
