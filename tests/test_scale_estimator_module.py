@@ -36,7 +36,7 @@ print("measurements shape", pc2.shape)
 
 estimator = ScaleEstimatorModule()
 estimator.configure(iterations=2000, dumping=0.7, kernel_threshold=0.01)
-Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = estimator.recover_similarity(points=pc1, measurements=pc2)
+Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = estimator.recover_similarity_transformation(points=pc1, measurements=pc2)
 
 print(Similarity)
 
@@ -52,7 +52,7 @@ print('Mean Square Error (Similarity):', similarity_position_error)
 # print('Mean Square Error (Similarity):', similarity_position_error)
 
 estimator.configure(iterations=1500, dumping=0.7, kernel_threshold=0.01)
-Homogeneous, chi_evolution, num_inliers_evolution, homogeneous_evolution = estimator.recover_linear_transformation(points=pc1, measurements=pc_similarity_correction)
+Homogeneous, chi_evolution, num_inliers_evolution, homogeneous_evolution = estimator.recover_rigid_transformation(points=pc1, measurements=pc_similarity_correction)
 
 print(Homogeneous)
 

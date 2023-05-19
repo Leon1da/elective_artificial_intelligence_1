@@ -11,7 +11,8 @@ class DatasetType:
 
 class SfMDataset:
   def __init__(self, workdir, dataset_name=DatasetType.BIRD):
-        
+      print('[LOG] Init Dataset loader.')
+         
       self.dataset_path = workdir + "/data/" + dataset_name
       self.dataset_type = dataset_name
         

@@ -94,7 +94,7 @@ def main():
     print('### Dumping:', dumping)
     print('### Kernel threshold:', kernel_threshold)
 
-    Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity(points=tvecs, measurements=gt_tvecs)
+    Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity_transformation(points=tvecs, measurements=gt_tvecs)
     s_, R_, t_ = similarity_to_srt(Similarity)
     print('OK.')
     print("Similarity")
@@ -124,7 +124,7 @@ def main():
     print('### Dumping:', dumping)
     print('### Kernel threshold:', kernel_threshold)
 
-    Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_linear_transformation(points=tvecs_similarity_correction, measurements=gt_tvecs)
+    Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_rigid_transformation(points=tvecs_similarity_correction, measurements=gt_tvecs)
     print('Ok.')
     print('Transform')
     print(Transform)

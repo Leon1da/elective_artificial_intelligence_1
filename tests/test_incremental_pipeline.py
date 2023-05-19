@@ -196,8 +196,6 @@ def main():
         points = global_points[idx] 
         measurements =  global_points_gt[idx]
         
-        # [TODO] RANSAC
-        
         
         # Recovering
         iterations = 100
@@ -212,9 +210,7 @@ def main():
         print('### Kernel threshold:', kernel_threshold)
         print('### points:', len(points))
         print('### measurements:', len(measurements))
-        print('[START] opimization..')
-        Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity(points=points, measurements=measurements)
-        print('[END] ok.')
+        Similarity, chi_evolution, num_inliers_evolution, similarity_evolution = scale_estimator_module.recover_similarity_transformation(points=points, measurements=measurements)
         
         print("Similarity")
         print(Similarity)
@@ -242,9 +238,7 @@ def main():
         print('### Kernel threshold:', kernel_threshold)
         print('### points:', len(points))
         print('### measurements:', len(measurements))
-        print('[START] opimization..')
-        Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_linear_transformation(points=points, measurements=measurements)
-        print('[END] ok.')
+        Transform, chi_evolution, num_inliers_evolution, transform_evolution = scale_estimator_module.recover_rigid_transformation(points=points, measurements=measurements)
         
         
         print('Transform')
@@ -289,7 +283,6 @@ def main():
             ATE_percentage = 100
         print('Percentage Translation Error / Trajectory Length:', ATE_percentage, '/', traj_length)
         
-        print("[LOG] Update plots.")
         drawer.clear(window_name=WindowName.PosesComplete)
         drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvec_normalized, color='#ff0000')
         drawer.draw(window_name=WindowName.PosesComplete, tvecs=gt_tvec_normalized, color='#0000ff')
@@ -332,7 +325,6 @@ def main():
         
         drawer.update()
         
-        print("[LOG] Update plots OK.")
         # To avoid useless waste of memory space
         # we deallocate the sensor readings that accumulate over time
         del data.gt_images_depth[key]

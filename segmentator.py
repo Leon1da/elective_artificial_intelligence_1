@@ -25,6 +25,8 @@ class Segment:
 
 class SegmentationModule:
     def __init__(self) -> None:
+        print('[LOG] Init Segmentation module.')
+        
         # load Mask2Former fine-tuned on ADE20k semantic segmentation
         self.processor = AutoImageProcessor.from_pretrained("facebook/mask2former-swin-large-ade-semantic")
         self.model = Mask2FormerForUniversalSegmentation.from_pretrained("facebook/mask2former-swin-large-ade-semantic")
@@ -84,6 +86,9 @@ class SegmentationModule:
         
         
     def segmentation(self, image):
+        print('[LOG] performing segmentation..')
+        
+        
         # preprocessing image   
         inputs = self.processor(images=image, return_tensors="pt")
         # run segmentation

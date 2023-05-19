@@ -7,6 +7,9 @@ class ScaleEstimatorModule:
         linear_transformation_guess=np.eye(4), 
         similarity_transformation_guess=np.eye(4)) -> None:
         
+        print('[LOG] Init Scale Estimation module.')
+        
+        
         self.linear_transformation_guess = linear_transformation_guess
         self.similarity_transformation_guess = similarity_transformation_guess
         
@@ -42,8 +45,8 @@ class ScaleEstimatorModule:
         self.verbose = False
         
         
-    def recover_similarity(self, points, measurements):
-        
+    def recover_similarity_transformation(self, points, measurements):
+        print('[LOG] Performing optimization..')     
         similarity_guess = self.similarity_transformation_guess
         iterations = self.iterations
         dumping = self.dumping
@@ -59,7 +62,8 @@ class ScaleEstimatorModule:
         self.similarity_transformation_guess = similarity
         return similarity, chi_stats, inliers, similarity_evolution
     
-    def recover_linear_transformation(self, points, measurements):
+    def recover_rigid_transformation(self, points, measurements):
+        print('[LOG] Performing optimization..')     
         linear_transformation_guess = self.linear_transformation_guess
         iterations = self.iterations
         dumping = self.dumping

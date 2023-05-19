@@ -81,9 +81,8 @@ class DrawerWindow:
         plt.pause(0.001)
     
     def clear(self):
-        
         axes = self.fig.get_axes() 
-        print(axes) 
+        # print(axes) 
         for axis in axes:
             axis.cla()
         
@@ -408,6 +407,7 @@ class PosesWindow3D(DrawerWindow):
 class Drawer:
     
     def __init__(self, windows={}) -> None:
+        print('[LOG] Init Drawer.')
         self.windows = windows
     
     def add_window(self, window: DrawerWindow):
@@ -417,6 +417,7 @@ class Drawer:
         self.windows[window_name].draw(**kwargs)
     
     def update(self):
+        print('[LOG] Updating plots..')             
         for window_key in self.windows:
             self.windows[window_key].update()
             
