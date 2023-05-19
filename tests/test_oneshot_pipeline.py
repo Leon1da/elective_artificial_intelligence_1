@@ -1,5 +1,5 @@
-import sys
-sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
+import sys, os
+sys.path.append(os.getcwd())
 
 
 
@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("--input_model", required=True, help="path to input model folder")
     parser.add_argument("--input_format", choices=[".bin", ".txt"],
                         help="input model format", default="")
+    parser.add_argument("--dataset_path", help="path to dataset folder", default="")
     args = parser.parse_args()
     return args
 
@@ -50,7 +51,7 @@ def main():
     fns = np.array([reconstruction.images[key].name for key in map_images_keys])
     
     # load dataset
-    workdir = "/mnt/d"
+    workdir = os.getcwd() if args.dataset_path == "" else args.dataset_path
     data = SfMDataset(workdir, DatasetType.ICRA)
     
     # load data ground truth poses

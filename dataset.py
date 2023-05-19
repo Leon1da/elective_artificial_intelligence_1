@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pycolmap
-from hloc.utils.read_write_model import read_model, write_model, qvec2rotmat, rotmat2qvec
+#from hloc.utils.read_write_model import read_model, write_model, qvec2rotmat, rotmat2qvec
 import imageio.v3 as iio
 from utils.dataset_utils import *
 
@@ -21,14 +21,14 @@ class SfMDataset:
         # - images (.ppm)
         # - silhouettes (.pgm)
 
-        fns = os.listdir(dataset_path + "/images")
-        self.images_fn = sorted(list([dataset_path + "/images/" + fn for fn in fns])) 
+        fns = os.listdir(self.dataset_path + "/images")
+        self.images_fn = sorted(list([self.dataset_path + "/images/" + fn for fn in fns])) 
         
-        fns = os.listdir(dataset_path + "/silhouettes")
-        self.silhouettes_fn = sorted(list([dataset_path + "/silhouettes/" + fn for fn in fns])) 
+        fns = os.listdir(self.dataset_path + "/silhouettes")
+        self.silhouettes_fn = sorted(list([self.dataset_path + "/silhouettes/" + fn for fn in fns])) 
         
-        fns = os.listdir(dataset_path + "/calib")
-        self.calibs_fn = sorted(list([dataset_path + "/calib/" + fn for fn in fns])) 
+        fns = os.listdir(self.dataset_path + "/calib")
+        self.calibs_fn = sorted(list([self.dataset_path + "/calib/" + fn for fn in fns])) 
       
       elif dataset_name == DatasetType.ICRA:
             # Folders:

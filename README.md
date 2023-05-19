@@ -1,41 +1,97 @@
-# elective_artificial_intelligence_1
+# Elective in Artificial Intelligence: AI for Visual Perception in HCI & HRI
 
-### Test of each building block
+This repo contains the code for the project **Absolute Scale Estimation for monocular SfM using beacons**
 
-# test_scale_estimator_module.py
+
+
+## Installation
+
+```
+pip install -r requirements.txt
+```
+
+Tested on Ubuntu 20.04 LTS + Python 3.8
+
+#### Optional:
+Install COLMAP (https://github.com/colmap/colmap) and hloc (https://github.com/cvg/Hierarchical-Localization) to start the mapping phase. Note that some maps are already provided with the dataset.
+
+### Data
+- Unzip icra_data.zip inside data/icra_data/
+- Unzip reconstruction_outputs.zip inside reconstruction_outputs/
+
+## Run the complete pipelines
+
+There are two ways to run the pipeline:
+
+
+Incrementally adjust the scale using the available data coming from the beacons:
+```
+python tests/test_incremental_pipeline.py --input_model reconstruction_outputs/<recostruction_sequence>/sfm/
+```
+
+
+Compute the scale correction oneshot:
+```
+python tests/test_oneshot_pipeline.py --input_model reconstruction_outputs/<recostruction_sequence>/sfm/
+```
+
+
+
+## Test building block
+
+### test_scale_estimator_module.py
 1. generate a point clouds (blue)
 2. generate a sets of measurements for the point cloud (red)
-3. estimate the similarity that aligneate the two point clouds (cyan)
-4. refine the obtained solution estimating an linear transformation between the points and the measurements corrected with the similarity above (green)
+3. estimate the similarity that aligns the two point clouds (cyan)
+4. refine the obtained solution estimating a linear transformation between the points and the measurements corrected with the similarity above (green)
 
-# test_segmentation_module.py
+```
+python tests/test_scale_estimator_module.py
+```
+
+### test_segmentation_module.py
 Segment the given images.
 
-# test_sfm_module.py
+```
+python tests/test_segmentation_module.py
+```
+
+### test_sfm_module.py
 given a set of images
 1. extract features
 2. compute matches
 3. run a reconstruction
 
-# test_sfm_visualization.py
+```
+python tests/test_sfm_module.py
+```
+
+**Note**: hloc required
+
+### test_sfm_visualization.py
 1. visualize a reconstruction
 
-### Validation
+```
+python tests/test_sfm_visualization.py --input_model reconstruction_outputs/<recostruction_sequence>/sfm/
+```
 
-# test_simulator_generation.py
+## Validation
+
+### test_simulator_generation.py
 generate 3 point clouds:
 - a torus 
 - a sphere
 - a cuboid
 with different level of noise
 
-# test_trajectory_alignment.py
+```
+python tests/test_simulator_generation.py
+```
+
+### test_trajectory_alignment.py
 given a reconstruction
 1. perform Iterative Closest Point optimization using the ground-truth poses and estimated poses
 
-### Test the complete pipelines
-# test_incremental_pipelines.py
-Incrementally adjust the scale using the available data caming from the beacons
-
-# test_oneshot_pipelines.py
-Compute the scale drift correction once.
+```
+python tests/test_trajectory_alignment.py --input_model reconstruction_outputs/<recostruction_sequence>/sfm/
+```

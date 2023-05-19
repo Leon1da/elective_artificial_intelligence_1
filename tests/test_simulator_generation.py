@@ -1,7 +1,6 @@
 
-import sys
-sys.path.append('/home/leonardo/elective_artificial_intelligence_1/')
-
+import sys, os
+sys.path.append(os.getcwd())
 
 from simulation.environment import *
 from drawer import *
