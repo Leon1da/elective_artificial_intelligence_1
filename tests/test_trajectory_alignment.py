@@ -78,12 +78,14 @@ def main():
     drawer.add_window(PosesWindow(WindowName.PosesComplete))
     
     drawer.add_window(PosesWindow(WindowName.PosesEvaluation))
+    
+    drawer.add_window(PosesWindow3D(WindowName.PosesComplete3d))
 
     
     # Recovering
-    iterations = 1000
+    iterations = 5000
     dumping = 0.6
-    kernel_threshold = 0.001
+    kernel_threshold = 0.005
     scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
     print('Run Similarity Iterative Closest Point..')
     print('##### Configuration #####')
@@ -110,7 +112,7 @@ def main():
    
     scale_estimator_module.linear_transformation_guess = rotation_translation_to_homogeneous(R_, t_)
     
-    iterations = 500
+    iterations = 1000
     dumping = 0.6
     kernel_threshold = 0.005
     scale_estimator_module.configure(iterations=iterations, dumping=dumping, kernel_threshold=kernel_threshold, verbose=False)
@@ -138,14 +140,20 @@ def main():
     
     # Compute the Error
     
-    ATE_sim = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
-    print('Absolute Translation Error (Similarity):', ATE_sim)
+    ate_mean_similarity, ate_std_similarity, ate_min_similarity = absolute_position_error(tvecs_similarity_correction_normalized, gt_tvec_normalized)
+    print('Absolute Translation Error (SICP):')
+    print('MEAN', ate_mean_similarity)
+    print('STD', ate_std_similarity)
+    print('MIN', ate_min_similarity)
     
-    ATE_hom = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
-    print('Absolute Translation Error (Transform):', ATE_hom)
+    ate_mean_rigid, ate_std_rigid, ate_min_rigid = absolute_position_error(tvecs_homogeneous_correction_normalized, gt_tvec_normalized)
+    print('Absolute Translation Error (RICP):')
+    print('MEAN', ate_mean_rigid)
+    print('STD', ate_std_rigid)
+    print('MIN', ate_min_rigid)
     
     traj_length = gt_trajectory_length[-1]
-    ATE_percentage = relative_position_error(ATE_hom, traj_length)
+    ATE_percentage = relative_position_error(ate_mean_rigid, traj_length)
     print('Percentage Translation Error / Trajectory Length:', ATE_percentage, '/', traj_length)
     
     drawer.clear(window_name=WindowName.PosesComplete)
@@ -157,6 +165,15 @@ def main():
     drawer.clear(window_name=WindowName.PosesEvaluation)
     drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=gt_tvec_normalized, color='#0000ff')
     drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+    drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=tvecs_similarity_correction_normalized, color='#00ffff')
+
+    drawer.clear(window_name=WindowName.PosesComplete3d)
+    drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvec_normalized, color='#ff0000')
+    drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=gt_tvec_normalized, color='#0000ff')
+    drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvecs_similarity_correction_normalized, color='#00ffff')
+    drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+    
+    
     
     drawer.update()
     

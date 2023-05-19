@@ -82,6 +82,9 @@ def main():
     posecomplete_window = PosesWindow(WindowName.PosesComplete)
     drawer.add_window(posecomplete_window)
     
+    posecomplete3d_window = PosesWindow3D(WindowName.PosesComplete3d)
+    drawer.add_window(posecomplete3d_window)
+    
     poseevaluation_window = PosesWindow(WindowName.PosesEvaluation)
     drawer.add_window(poseevaluation_window)
     
@@ -262,9 +265,12 @@ def main():
         drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=gt_tvec_normalized, color='#0000ff')
         drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
         
-        
-        
-        
+        drawer.clear(window_name=WindowName.PosesComplete3d)
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvec_normalized, color='#ff0000')
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=gt_tvec_normalized, color='#0000ff')
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvecs_similarity_correction_normalized, color='#00ffff')
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+         
         drawer.clear(window_name=WindowName.Points)
         drawer.draw(window_name=WindowName.Points, points=points3d_coords, color='#ff0000')
         drawer.draw(window_name=WindowName.Points, points=points3d_gt_coords, color='#0000ff')

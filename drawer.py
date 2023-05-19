@@ -53,6 +53,7 @@ class BrowserDrawer:
  
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from mpl_toolkits import mplot3d
 
 import enum
 
@@ -65,6 +66,7 @@ class WindowName(enum.Enum):
     Segmentation = 'Segmentation'
     Points = 'Points'
     PosesComplete = 'PosesComplete'
+    PosesComplete3d = 'PosesComplete3d'
     PosesEvaluation = 'PosesEvaluation'
 
       
@@ -79,16 +81,20 @@ class DrawerWindow:
         plt.pause(0.001)
     
     def clear(self):
-        for scatter in self.scatters:
-            scatter.remove() # remove previous plotted points
-        self.scatters = []
+        
+        axes = self.fig.get_axes() 
+        print(axes) 
+        for axis in axes:
+            axis.cla()
+        
+        
         
             
         
 class ScaleEstimationWindow(DrawerWindow):
     
     def __init__(self, window_name: WindowName):
-        fig, ax = plt.subplots(2,4)
+        fig, ax = plt.subplots(2, 2)
         # fig, ax = plt.subplots(1, 2)
         
         self.fig = fig
@@ -97,178 +103,6 @@ class ScaleEstimationWindow(DrawerWindow):
         super().__init__(window_name)
     
     def draw(self, **kwargs):
-        
-        # SICP
-        if 'sicp_transformation_evolution' in kwargs:
-            transformation_evolution = kwargs['sicp_transformation_evolution']
-            num_iterations = len(transformation_evolution)
-            scale = [T[3, 3] for T in transformation_evolution]
-                
-            lines = self.ax[0, 0].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_scale = y_data[-1]
-                iterations = list(range(last_iteration + 1, last_iteration + num_iterations + 1))
-                iterations.insert(0, last_iteration) 
-                scale.insert(0, last_scale)
-            else:
-                iterations = list(range(num_iterations))
-            
-            # print(iterations)
-            # print(scale)
-            self.ax[0, 0].plot(iterations, scale, c='b')
-            self.ax[0, 0].set_title('sicp_transformation_evolution')
-        
-        if 'sicp_error' in kwargs:
-            error = kwargs['sicp_error']
-            # lines = self.ax[0, 1].get_lines()
-            lines = self.ax[0, 0].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_error = y_data[-1]
-                iterations = [last_iteration, last_iteration + 1]
-                error = [last_error, error]
-            else:
-                iterations = [0]
-                error = [error]
-                
-            # print(iterations)
-            # print(error)
-
-            self.ax[0, 1].plot(iterations, error, c='b')
-            self.ax[0, 1].set_title('sicp_error')
-     
-        if 'sicp_chi_evolution' in kwargs:
-            chi_evolution = kwargs['sicp_chi_evolution']
-            num_iterations = len(chi_evolution)
-                
-            lines = self.ax[0, 2].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_chi = y_data[-1]
-                iterations = list(range(last_iteration + 1, last_iteration + num_iterations + 1))
-                iterations.insert(0, last_iteration) 
-                chi_evolution.insert(0, last_chi)
-            else:
-                iterations = list(range(num_iterations))
-            
-            # print(iterations)
-            # print(chi_evolution)
-            self.ax[0, 2].plot(iterations, chi_evolution, c='b')
-            self.ax[0, 2].set_title('sicp_chi_evolution')
-        
-        if 'sicp_inliers_evolution' in kwargs:
-            inliers_evolution = kwargs['sicp_inliers_evolution']
-            num_iterations = len(inliers_evolution)
-                
-            lines = self.ax[0, 3].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_inliers = y_data[-1]
-                iterations = list(range(last_iteration + 1, last_iteration + num_iterations + 1))
-                iterations.insert(0, last_iteration) 
-                inliers_evolution.insert(0, last_inliers)
-            else:
-                iterations = list(range(num_iterations))
-            
-            # print(iterations)
-            # print(inliers_evolution)
-            self.ax[0, 3].plot(iterations, inliers_evolution, c='b')
-            self.ax[0, 3].set_title('sicp_inliers_evolution')
-        
-        
-        # MICP
-        if 'micp_transformation_evolution' in kwargs:
-            transformation_evolution = kwargs['micp_transformation_evolution']
-            num_iterations = len(transformation_evolution)
-            scale = [T[3, 3] for T in transformation_evolution]
-                
-            lines = self.ax[1, 0].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_scale = y_data[-1]
-                iterations = list(range(last_iteration + 1, last_iteration + num_iterations + 1))
-                iterations.insert(0, last_iteration) 
-                scale.insert(0, last_scale)
-            else:
-                iterations = list(range(num_iterations))
-            
-            # print(iterations)
-            # print(scale)
-            self.ax[1, 0].plot(iterations, scale, c='b')
-            self.ax[1, 0].set_title('micp_transformation_evolution')
-        
-        if 'micp_error' in kwargs:
-            error = kwargs['micp_error']
-            # lines = self.ax[1, 1].get_lines()
-            lines = self.ax[0, 1].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_error = y_data[-1]
-                iterations = [last_iteration, last_iteration + 1]
-                error = [last_error, error]
-            else:
-                iterations = [0]
-                error = [error]
-            
-            # print(iterations)
-            # print(error)
-            self.ax[1, 1].plot(iterations, error, c='b')
-            self.ax[1, 1].set_title('micp_error')
-            
-        if 'micp_chi_evolution' in kwargs:
-            chi_evolution = kwargs['micp_chi_evolution']
-            num_iterations = len(chi_evolution)
-                
-            lines = self.ax[1, 2].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_chi = y_data[-1]
-                iterations = list(range(last_iteration + 1, last_iteration + num_iterations + 1))
-                iterations.insert(0, last_iteration) 
-                chi_evolution.insert(0, last_chi)
-            else:
-                iterations = list(range(num_iterations))
-            
-            # print(iterations)
-            # print(chi_evolution)
-            self.ax[1, 2].plot(iterations, chi_evolution, c='b')
-            self.ax[1, 2].set_title('micp_chi_evolution')
-        
-        if 'micp_inliers_evolution' in kwargs:
-            inliers_evolution = kwargs['micp_inliers_evolution']
-            num_iterations = len(inliers_evolution)
-                
-            lines = self.ax[1, 3].get_lines()
-            num_lines = len(lines)
-            if num_lines:
-                x_data, y_data = lines[-1].get_data()  
-                last_iteration = x_data[-1]
-                last_inliers = y_data[-1]
-                iterations = list(range(last_iteration + 1, last_iteration + num_iterations + 1))
-                iterations.insert(0, last_iteration) 
-                inliers_evolution.insert(0, last_inliers)
-            else:
-                iterations = list(range(num_iterations))
-            
-            # print(iterations)
-            # print(inliers_evolution)
-            self.ax[1, 3].plot(iterations, inliers_evolution, c='b')
-            self.ax[1, 3].set_title('micp_inliers_evolution')
         
         # GENERAL
         if 'absolute_error_iterations' in kwargs:
@@ -310,14 +144,12 @@ class ScaleEstimationWindow(DrawerWindow):
                 ate_ = [ate]
             
             self.ax[0, 3].plot(keypoints_number_, ate_, c='b', marker='.', markersize=4, linewidth=1)
-            self.ax[0, 3].set_title('absolute_error_keyframes')
-        
+            
         if 'absolute_error_keyframes' in kwargs:
             absolute_error_keyframes = kwargs['absolute_error_keyframes']
             ate, keyframe_number = absolute_error_keyframes[0], absolute_error_keyframes[1]
-            print(ate, keyframe_number)
                 
-            lines = self.ax[0, 2].get_lines()
+            lines = self.ax[0, 1].get_lines()
             num_lines = len(lines)
             if num_lines:
                 x_data, y_data = lines[-1].get_data()  
@@ -329,18 +161,15 @@ class ScaleEstimationWindow(DrawerWindow):
                 keyframe_number_ = [keyframe_number]
                 ate_ = [ate]
             
-            self.ax[0, 2].plot(keyframe_number_, ate_, c='b', marker='.', markersize=4, linewidth=1)
-            self.ax[0, 2].set_xlabel('# keyframes')
-            self.ax[0, 2].set_ylabel('ATE [m]')
+            self.ax[0, 1].plot(keyframe_number_, ate_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[0, 1].set_xlabel('# keyframe')
+            self.ax[0, 1].set_ylabel('ATE [m]')
             
-            self.ax[0, 2].set_title('absolute_error_keyframes')
-        
         if 'percentage_error_trajectory_length' in kwargs:
             percentage_error_trajectory_length = kwargs['percentage_error_trajectory_length']
             percentage_ate, trajectory_length = percentage_error_trajectory_length[0], percentage_error_trajectory_length[1]
-            print(percentage_ate, trajectory_length)
                 
-            lines = self.ax[0, 1].get_lines()
+            lines = self.ax[1, 0].get_lines()
             num_lines = len(lines)
             if num_lines:
                 x_data, y_data = lines[-1].get_data()  
@@ -352,18 +181,16 @@ class ScaleEstimationWindow(DrawerWindow):
                 trajectory_length_ = [trajectory_length]
                 percentage_ate_ = [percentage_ate]
             
-            self.ax[0, 1].plot(trajectory_length_, percentage_ate_, c='b', marker='.', markersize=4, linewidth=1)
-            self.ax[0, 1].set_ylim([0, 100])
-            self.ax[0, 1].set_ylabel('translation error [%]')
-            self.ax[0, 1].set_xlabel('trajectory length [m]')
-            # self.ax[0, 1].set_title('percentage_error_trajectory_length')
-
+            self.ax[1, 0].plot(trajectory_length_, percentage_ate_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[1, 0].set_ylim([0, 100])
+            self.ax[1, 0].set_ylabel('translation error [%]')
+            self.ax[1, 0].set_xlabel('trajectory length [m]')
+            
         if 'scale_keyframes' in kwargs:
             scale_keyframes = kwargs['scale_keyframes']
             scale, keyframes = scale_keyframes[0], scale_keyframes[1]
-            print(scale, keyframes)
                 
-            lines = self.ax[1, 0].get_lines()
+            lines = self.ax[0, 0].get_lines()
             num_lines = len(lines)
             if num_lines:
                 x_data, y_data = lines[-1].get_data()  
@@ -376,11 +203,10 @@ class ScaleEstimationWindow(DrawerWindow):
                 scale_ = [scale]
                 keyframes_ = [keyframes]
             
-            self.ax[1, 0].plot(keyframes_, scale_, c='b', marker='.', markersize=4, linewidth=1)
-            self.ax[1, 0].set_xlabel('# keyframe')
-            self.ax[1, 0].set_ylabel('scale')
-            # self.ax[1, 0].set_title('scale_keyframes')
-        
+            self.ax[0, 0].plot(keyframes_, scale_, c='b', marker='.', markersize=4, linewidth=1)
+            self.ax[0, 0].set_xlabel('# keyframe')
+            self.ax[0, 0].set_ylabel('scale')
+            
         if 'keypoints' in kwargs:
             keypoints = kwargs['keypoints']
             keyframes, total_keypoints, segmentated_keypoints, optimization_keypoints = keypoints[0], keypoints[1], keypoints[2], keypoints[3]
@@ -388,33 +214,29 @@ class ScaleEstimationWindow(DrawerWindow):
             bins = [keyframes, keyframes + 1]
             
             x = [total_keypoints]
-            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#29339B", alpha=0.5, fill=True)
+            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#29339B", alpha=1, fill=True)
             
             x = [segmentated_keypoints]
-            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#348AA7", alpha=0.5, fill=True)
+            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#348AA7", alpha=1, fill=True)
 
             x = [optimization_keypoints]            
-            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#5DD39E", alpha=0.5, fill=True)
+            self.ax[1, 1].stairs(x, bins, lw=1, ec="#000000", fc="#5DD39E", alpha=1, fill=True)
             
             self.ax[1, 1].set_xlabel('# keyframe')
             self.ax[1, 1].set_ylabel('# keypoints')
             
-            c1 = mpatches.Patch(color='#29339B', label='segmented keypoints')
-            c2 = mpatches.Patch(color='#348AA7', label='total keypoints')
+            c1 = mpatches.Patch(color='#29339B', label='total keypoints')
+            c2 = mpatches.Patch(color='#348AA7', label='segmented keypoints')
             c3 = mpatches.Patch(color='#5DD39E', label='otimization keypoints')
-            self.ax[1, 1].legend(handles=[c1, c2, c3])
-            
-    
-    
+            self.ax[1, 1].legend(handles=[c1, c2, c3], loc="upper right")
+             
 class SegmentationWindow(DrawerWindow):
     
     def __init__(self, window_name: WindowName, classes):
         fig, ax = plt.subplots(1,1)
-        scatter = ax.scatter([], [])
         
         self.fig = fig
         self.ax = ax
-        self.scatters = []
         
         num_classes = len(classes.items())
         cmap = plt.cm.get_cmap('hsv', num_classes) # color map (1 color for each possible class)
@@ -434,7 +256,6 @@ class SegmentationWindow(DrawerWindow):
         super().__init__(window_name)
         
     def draw(self, **kwargs):
-            
         if 'image' in kwargs and 'segments' in kwargs:
             image = kwargs['image']
             segments = kwargs['segments']
@@ -464,7 +285,7 @@ class SegmentationWindow(DrawerWindow):
                 patch = self.patches[label_id]
             else:
                 # setup INVALID patch
-                label = segment.label_name + " [INVALID]"
+                label = segment.label_name + " [REJECT]"
                 patch = mpatches.Patch(color=(1, 1, 1, 0.3), label=label)
                 # patch = self.patches[-1]
                 
@@ -475,32 +296,25 @@ class SegmentationWindow(DrawerWindow):
                        
         # draw segments 
         self.ax.imshow(color_mask)
-        self.ax.legend(handles = self.handles)
+        self.ax.legend(handles = self.handles, loc="upper right", )
         
     def draw_keypoints(self, keypoints, mask=None):
         
-        # total_keypoints = len(mask)
-        # total_segmented_keypoints = np.sum(mask)
-        # print("keypoints", total_keypoints)
-        # print("segmented keypoints", total_segmented_keypoints)
-        
-        # self.scatter.remove() # remove previous scatter plot
         # #ff0000 (red) segmented
         # #000000 (black) outliers (not segmented)
         colors = ['#ff0000' if m else '#000000' for m in mask]
         xs = keypoints[:, 0]
         ys = keypoints[:, 1]
-        scatter = self.ax.scatter(xs, ys, s=0.1, c=colors)
-        self.scatters.append(scatter)
-   
+        self.ax.scatter(xs, ys, marker='.', s=5, c=colors)
+              
 class PointsWindow(DrawerWindow):
     def __init__(self, window_name: WindowName):
-        fig = plt.figure(figsize=(5, 5))
+        
+        fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
         
         self.fig = fig
         self.ax = ax
-        self.scatters = []
         
         super().__init__(window_name)
         
@@ -515,37 +329,22 @@ class PointsWindow(DrawerWindow):
         xs = points[:, 0]
         ys = points[:, 1]
         zs = points[:, 2]
-        scatter = self.ax.scatter(xs, ys, zs, marker='.', c=color, linewidths=0.2)
-        self.scatters.append(scatter)
-
+        
+        self.ax.set_title('Points')
+        self.ax.set_xlabel('x [m]')
+        self.ax.set_ylabel('y [m]')
+        self.ax.set_zlabel('z [m]')
+        
+        self.ax.scatter(xs, ys, zs, marker='.', c=color, linewidths=0.2)
+        
 class PosesWindow(DrawerWindow):
     
     def __init__(self, window_name: WindowName):
         
-        
-        fig = plt.figure(figsize=(5, 5))
-        ax1 = fig.add_subplot(221, projection='3d') # 3d plot
-        ax1.set_title('poses')
-        
-        ax2 = fig.add_subplot(222) # xy plot
-        ax2.set_xlabel('x [m]')
-        ax2.set_ylabel('y [m]')
-        
-        ax3 = fig.add_subplot(223) # xz plot
-        ax3.set_xlabel('x [m]')
-        ax3.set_ylabel('z [m]')
-        
-        ax4 =fig.add_subplot(224) # yz plot
-        ax4.set_xlabel('y [m]')
-        ax4.set_ylabel('z [m]')
-        
-    
+        fig, ax = plt.subplots(1, 3)
         
         self.fig = fig
-        self.ax = [ax1, ax2, ax3, ax4]
-        
-        self.plots = []
-        self.scatters = []
+        self.ax = ax
         
         super().__init__(window_name)
         
@@ -561,21 +360,51 @@ class PosesWindow(DrawerWindow):
         ys = tvecs[:, 1]
         zs = tvecs[:, 2]
         
-        scatter = self.ax[0].scatter(xs, ys, zs, marker='.', c=color, s=0.2)
-        p1 = self.ax[1].plot(xs, ys, c=color)[0]
-        p2 = self.ax[2].plot(xs, zs, c=color)[0]
-        p3 = self.ax[3].plot(ys, zs, c=color)[0]
+        # self.ax.set_title("Poses")
+        self.ax[0].plot(xs, ys, c=color)
+        self.ax[0].set_xlabel('x [m]')
+        self.ax[0].set_ylabel('y [m]')
         
-        self.plots = [p1, p2, p3]
-        self.scatters.append(scatter)
-     
+        self.ax[1].plot(xs, zs, c=color)
+        self.ax[1].set_xlabel('x [m]')
+        self.ax[1].set_ylabel('z [m]')
+        
+        self.ax[2].plot(ys, zs, c=color)
+        self.ax[2].set_xlabel('y [m]')
+        self.ax[2].set_ylabel('z [m]')
             
-    def clear(self):
-        for plot in self.plots:
-            plot.remove()
-
-        super().clear()
+class PosesWindow3D(DrawerWindow):
+    
+    def __init__(self, window_name: WindowName):
         
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(projection='3d')
+        
+        self.fig = fig
+        self.ax = ax
+        
+        
+        super().__init__(window_name)
+        
+    def draw(self, **kwargs):
+        if 'tvecs' in kwargs:
+            tvecs = kwargs['tvecs']
+        if 'color' in kwargs:
+            color = kwargs['color']
+        self.plot_tvecs(tvecs, color)
+        
+    def plot_tvecs(self, tvecs, color):
+        
+        xs = tvecs[:, 0]
+        ys = tvecs[:, 1]
+        zs = tvecs[:, 2]
+        
+        self.ax.set_title('Poses')
+        self.ax.set_xlabel('x [m]')
+        self.ax.set_ylabel('y [m]')
+        self.ax.set_zlabel('z [m]')
+        self.ax.plot3D(xs, ys, zs, c=color)
+            
 class Drawer:
     
     def __init__(self, windows={}) -> None:

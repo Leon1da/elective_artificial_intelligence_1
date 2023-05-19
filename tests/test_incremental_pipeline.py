@@ -84,6 +84,8 @@ def main():
     
     drawer.add_window(PosesWindow(WindowName.PosesEvaluation))
     
+    drawer.add_window(PosesWindow3D(WindowName.PosesComplete3d))
+    
     points_window = PointsWindow(WindowName.Points)
     drawer.add_window(points_window)
     
@@ -132,12 +134,15 @@ def main():
         print('Found', total_keypoints, 'inside the image.')
         print('Found', total_segmented_keypoints, 'inside the segments.')
         
-        if not total_segmented_keypoints: 
-            print('Skipping scale correction. No data available.')
-            continue
         
         drawer.clear(window_name=WindowName.Segmentation)
         drawer.draw(window_name=WindowName.Segmentation, image=filename_rgb, segments=segments, keypoints=keypoints, mask=keypoints_segmentation_mask)
+        
+        if not total_segmented_keypoints: 
+            print('Skipping scale correction. No data available.')
+            drawer.update()
+            continue
+        
         
         # keypoints outside the region segmented will not be used for optimization
         # TODO: It simulates the RFID  (we obtain depth informations only from Beacons)
@@ -165,16 +170,22 @@ def main():
         global_points_gt = np.vstack((global_points_gt, points3d_gt_coords))[1:, ]
         num_global_points = global_points.shape[0] - 1
         
+        global_points = points3d_coords
+        global_points_gt = points3d_gt_coords
+        num_global_points = global_points.shape[0]
+        
         # Random Sampling 
         min_sampling_num = 100
         max_sampling_num = 5000
-        sampling_percentage = 0.1 # 10 %
+        sampling_percentage = 0.25 # 10 %
         sampling_num = int(num_global_points * sampling_percentage)
         if sampling_num < min_sampling_num: 
             sampling_num = min_sampling_num
         elif sampling_num > max_sampling_num:
             sampling_num = max_sampling_num
-        
+        if num_global_points < sampling_num:
+            sampling_num = num_global_points
+            
         print('### Random Sampling')
         print('### sampling_num:', sampling_num)
             
@@ -278,18 +289,23 @@ def main():
             ATE_percentage = 100
         print('Percentage Translation Error / Trajectory Length:', ATE_percentage, '/', traj_length)
         
+        print("[LOG] Update plots.")
         drawer.clear(window_name=WindowName.PosesComplete)
         drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvec_normalized, color='#ff0000')
         drawer.draw(window_name=WindowName.PosesComplete, tvecs=gt_tvec_normalized, color='#0000ff')
         drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvecs_similarity_correction_normalized, color='#00ffff')
         drawer.draw(window_name=WindowName.PosesComplete, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
         
+        drawer.clear(window_name=WindowName.PosesComplete3d)
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvec_normalized, color='#ff0000')
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=gt_tvec_normalized, color='#0000ff')
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvecs_similarity_correction_normalized, color='#00ffff')
+        drawer.draw(window_name=WindowName.PosesComplete3d, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
+        
+        
         drawer.clear(window_name=WindowName.PosesEvaluation)
         drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=gt_tvec_normalized, color='#0000ff')
         drawer.draw(window_name=WindowName.PosesEvaluation, tvecs=tvecs_homogeneous_correction_normalized, color='#00ff00')
-        
-                
-
         
         
         # plots 
@@ -297,7 +313,6 @@ def main():
         # 2) translation error (meters) / number icp iterations
         # 3) translation error (meters) / number keyframes
         # 3) translation error (meters) / number keypoints (we mean keypoints used for optimization)
-        print('Drawer')
         drawer.draw(window_name=WindowName.ScaleStatistics, 
                     # absolute_error_iterations = [ATE_hom, total_scale_estimator_iterations],
                     # absolute_error_keypoints = [ATE_hom, num_global_points], 
@@ -307,7 +322,6 @@ def main():
                     # keypoints = [index, total_keypoints, total_segmented_keypoints, sampling_num]
                     keypoints = [index, total_keypoints, total_segmented_keypoints, 0]
                     )
-        print('Ok')
         
         
         drawer.clear(window_name=WindowName.Points)
@@ -318,6 +332,7 @@ def main():
         
         drawer.update()
         
+        print("[LOG] Update plots OK.")
         # To avoid useless waste of memory space
         # we deallocate the sensor readings that accumulate over time
         del data.gt_images_depth[key]
