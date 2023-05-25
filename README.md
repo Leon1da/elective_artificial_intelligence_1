@@ -13,10 +13,10 @@ pip install -r requirements.txt
 Tested on Ubuntu 20.04 LTS + Python 3.8
 
 #### Optional:
-Install COLMAP (https://github.com/colmap/colmap) and hloc (https://github.com/cvg/Hierarchical-Localization) to start the mapping phase. *Note that some maps are already provided with the dataset.*
+Install COLMAP (https://github.com/colmap/colmap) and hloc (https://github.com/cvg/Hierarchical-Localization) to start the mapping phase. **Note that we already provide some maps.**
 
 ### Data
-- Unzip dataset.zip inside data/icra_data/
+Unzip dataset.zip inside data/icra_data/
 
 ## Run the complete pipelines
 
